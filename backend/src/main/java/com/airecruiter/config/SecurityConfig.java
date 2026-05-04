@@ -36,26 +36,38 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http
+   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    return http
         .csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
             // LIBERA A HOME E OS ARQUIVOS DO FRONTEND
-            .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "*.js", "*.css", "*.png").permitAll()
-            
+            .requestMatchers(
+                "/",
+                "/index.html",
+                "/static/**",
+                "/assets/**",
+                "/**/*.js",
+                "/**/*.css",
+                "/**/*.png",
+                "/**/*.ico",   // ← resolve o 403 do favicon
+                "/**/*.svg",
+                "/**/*.woff",
+                "/**/*.woff2"
+            ).permitAll()
+
             // SUAS ROTAS JÁ LIBERADAS
             .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
             .requestMatchers(HttpMethod.GET,  "/api/auth/health").permitAll()
             .requestMatchers(HttpMethod.GET,  "/api/jobs").permitAll()
-            
+
             // TUDO O QUE NÃO ESTÁ ACIMA CONTINUA EXIGINDO LOGIN
             .anyRequest().authenticated()
         )
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .build();
-    }
+}
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
