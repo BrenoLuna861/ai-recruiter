@@ -10,6 +10,7 @@ import com.airecruiter.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
@@ -136,7 +137,7 @@ public class ResumeService {
         try {
             String type = file.getContentType();
             if ("application/pdf".equals(type)) {
-                try (PDDocument doc = PDDocument.load(file.getInputStream())) {
+                try (PDDocument doc = Loader.loadPDF(file.getInputStream().readAllBytes())) {
                     return new PDFTextStripper().getText(doc);
                 }
             } else if ("application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(type)) {
