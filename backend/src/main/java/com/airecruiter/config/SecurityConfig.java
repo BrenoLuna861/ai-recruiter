@@ -36,33 +36,40 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     @Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    return http
-        .csrf(AbstractHttpConfigurer::disable)
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(auth -> auth
-            // LIBERA A HOME E OS ARQUIVOS DO FRONTEND
-            .requestMatchers(
-                "/",
-                "/index.html",
-                "/favicon.svg",
-                "/favicon.ico",
-                "/assets/**",
-                "/static/**"
-            ).permitAll()
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                // ARQUIVOS DO FRONTEND
+                .requestMatchers(
+                    "/",
+                    "/index.html",
+                    "/login",
+                    "/register",
+                    "/jobs",
+                    "/dashboard",
+                    "/chat",
+                    "/resume",
+                    "/recruiter",
+                    "/favicon.svg",
+                    "/favicon.ico",
+                    "/assets/**",
+                    "/static/**"
+                ).permitAll()
 
-            // SUAS ROTAS JÁ LIBERADAS
-            .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
-            .requestMatchers(HttpMethod.GET,  "/api/auth/health").permitAll()
-            .requestMatchers(HttpMethod.GET,  "/api/jobs").permitAll()
+                // ROTAS DA API
+                .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/auth/health").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/jobs").permitAll()
 
-            // TUDO O QUE NÃO ESTÁ ACIMA CONTINUA EXIGINDO LOGIN
-            .anyRequest().authenticated()
-        )
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-        .build();
-}
+                // TUDO O QUE NÃO ESTÁ ACIMA CONTINUA EXIGINDO LOGIN
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .build();
+    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
