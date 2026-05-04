@@ -1,0 +1,86 @@
+<template>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="brand-mark">✦</span>
+        <span class="brand-text">AI Recruiter</span>
+      </div>
+      <h1>Criar conta</h1>
+      <p class="auth-sub">Junte-se à plataforma de recrutamento inteligente</p>
+
+      <div v-if="error" class="error-box" style="margin-bottom:20px">{{ error }}</div>
+
+      <form @submit.prevent="handleRegister" class="auth-form">
+        <div class="field">
+          <label class="label">Nome completo</label>
+          <input v-model="form.name" type="text" class="input" placeholder="Seu Nome" required />
+        </div>
+        <div class="field">
+          <label class="label">Email</label>
+          <input v-model="form.email" type="email" class="input" placeholder="seu@email.com" required />
+        </div>
+        <div class="field">
+          <label class="label">Senha</label>
+          <input v-model="form.password" type="password" class="input" placeholder="mínimo 8 caracteres" required minlength="8" />
+        </div>
+        <div class="field">
+          <label class="label">Perfil</label>
+          <select v-model="form.role" class="input">
+            <option value="CANDIDATE">Candidato — Procuro emprego</option>
+            <option value="RECRUITER">Recrutador — Procuro talentos</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full" :disabled="loading">
+          <span v-if="loading" class="spinner" style="width:16px;height:16px;border-width:2px"></span>
+          <span>{{ loading ? 'Criando...' : 'Criar conta' }}</span>
+        </button>
+      </form>
+
+      <p class="auth-footer">
+        Já tem conta?
+        <RouterLink to="/login">Entrar</RouterLink>
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const auth = useAuthStore()
+const error = ref('')
+const loading = ref(false)
+const form = reactive({ name: '', email: '', password: '', role: 'CANDIDATE' })
+
+async function handleRegister() {
+  error.value = ''
+  loading.value = true
+  try {
+    await auth.register(form.name, form.email, form.password, form.role)
+    router.push('/dashboard')
+  } catch (e: any) {
+    error.value = e.response?.data?.message || 'Erro ao criar conta'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<style scoped>
+.auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
+.auth-card { width: 100%; max-width: 400px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px; }
+.auth-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 28px; }
+.brand-mark { color: var(--accent); font-size: 18px; }
+.brand-text { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: -0.02em; }
+h1 { font-size: var(--text-3xl); margin-bottom: 6px; }
+.auth-sub { font-size: var(--text-sm); color: var(--text-muted); margin-bottom: 28px; }
+.auth-form { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; }
+.w-full { width: 100%; justify-content: center; padding: 12px; }
+.auth-footer { text-align: center; font-size: var(--text-sm); color: var(--text-muted); margin-top: 20px; }
+.auth-footer a { color: var(--accent); text-decoration: none; }
+</style>

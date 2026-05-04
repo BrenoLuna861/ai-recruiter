@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoria de Segurança — AI Recruiter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:       #0a0a0b;
+    --surface:  #111114;
+    --border:   #1e1e24;
+    --border2:  #2a2a32;
+    --text:     #e8e8f0;
+    --muted:    #6b6b80;
+    --accent:   #6ee7b7;   /* teal */
+    --red:      #f87171;
+    --orange:   #fb923c;
+    --yellow:   #fbbf24;
+    --blue:     #60a5fa;
+    --purple:   #a78bfa;
+    --font-d:   'DM Serif Display', Georgia, serif;
+    --font-b:   'DM Sans', system-ui, sans-serif;
+    --font-m:   'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-b);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 48px 24px 96px;
+  }
+
+  .container { max-width: 900px; margin: 0 auto; }
+
+  /* ---- Header ---- */
+  header {
+    border-bottom: 1px solid var(--border2);
+    padding-bottom: 32px;
+    margin-bottom: 48px;
+  }
+
+  .tag {
+    font-family: var(--font-m);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  h1 {
+    font-family: var(--font-d);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---- Score Board ---- */
+  .scoreboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 48px;
+  }
+
+  .score-cell {
+    background: var(--surface);
+    padding: 24px 20px;
+    text-align: center;
+  }
+
+  .score-num {
+    font-family: var(--font-m);
+    font-size: 2.5rem;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .score-label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .s-red    { color: var(--red); }
+  .s-orange { color: var(--orange); }
+  .s-yellow { color: var(--yellow); }
+  .s-green  { color: var(--accent); }
+  .s-blue   { color: var(--blue); }
+
+  /* ---- Section ---- */
+  section { margin-bottom: 56px; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h2 {
+    font-family: var(--font-d);
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+
+  .count {
+    font-family: var(--font-m);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* ---- Finding Card ---- */
+  .finding {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .finding-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: var(--surface);
+    cursor: pointer;
+  }
+
+  .sev {
+    font-family: var(--font-m);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .sev-critical { background: rgba(248,113,113,.15); color: var(--red);    border: 1px solid rgba(248,113,113,.3); }
+  .sev-high     { background: rgba(251,146,60,.12);  color: var(--orange); border: 1px solid rgba(251,146,60,.3); }
+  .sev-medium   { background: rgba(251,191,36,.1);   color: var(--yellow); border: 1px solid rgba(251,191,36,.3); }
+  .sev-low      { background: rgba(96,165,250,.1);   color: var(--blue);   border: 1px solid rgba(96,165,250,.3); }
+  .sev-info     { background: rgba(167,139,250,.1);  color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+  .sev-ok       { background: rgba(110,231,183,.1);  color: var(--accent); border: 1px solid rgba(110,231,183,.3); }
+
+  .finding-title {
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
+  }
+
+  .finding-body {
+    padding: 16px 18px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 13px;
+    line-height: 1.7;
+    color: #c8c8d8;
+  }
+
+  .finding-body p { margin-bottom: 10px; }
+  .finding-body p:last-child { margin-bottom: 0; }
+
+  code, pre {
+    font-family: var(--font-m);
+    font-size: 12px;
+    background: #16161c;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+  }
+
+  code { padding: 2px 6px; color: var(--accent); }
+
+  pre {
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 10px 0;
+    color: #a8b5d0;
+    line-height: 1.6;
+  }
+
+  .fix-label {
+    font-family: var(--font-m);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  /* ---- Checklist ---- */
+  .checklist { list-style: none; }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .checklist li:last-child { border-bottom: none; }
+
+  .check-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .ci-done  { background: rgba(110,231,183,.2); color: var(--accent); }
+  .ci-todo  { background: rgba(248,113,113,.15); color: var(--red); }
+  .ci-warn  { background: rgba(251,191,36,.12);  color: var(--yellow); }
+
+  /* ---- Footer ---- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+    margin-top: 64px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <span class="tag">Relatório de Auditoria · AI Recruiter · 2025</span>
+    <h1>Auditoria de<br><em>Segurança & Deploy</em></h1>
+    <p class="subtitle">Análise completa para produção · Gerado por Claude Sonnet</p>
+  </header>
+
+  <!-- Scoreboard -->
+  <div class="scoreboard">
+    <div class="score-cell">
+      <div class="score-num s-red">2</div>
+      <div class="score-label">Críticos</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-num s-orange">4</div>
+      <div class="score-label">Altos</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-num s-yellow">5</div>
+      <div class="score-label">Médios</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-num s-blue">3</div>
+      <div class="score-label">Baixos</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-num s-green">8</div>
+      <div class="score-label">OK / Boas práticas</div>
+    </div>
+  </div>
+
+  <!-- ===== CRÍTICOS ===== -->
+  <section>
+    <div class="section-head">
+      <h2>🔴 Críticos</h2>
+      <span class="count">2 achados — bloqueadores para ir ao ar</span>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-critical">CRITICAL</span>
+        <span class="finding-title">Credenciais reais expostas no arquivo <code>_env</code> versionado</span>
+      </div>
+      <div class="finding-body">
+        <p>O arquivo <code>_env</code> enviado contém a chave real da Anthropic, senhas do MySQL e MongoDB em texto puro. Se esse arquivo for commitado no repositório Git — mesmo em branch privado — qualquer pessoa com acesso ao repo pode usar essas credenciais.</p>
+        <p><strong>Impacto:</strong> Comprometimento total da conta Anthropic (custos ilimitados de API), acesso irrestrito ao banco de dados e possível exfiltração de todos os dados de usuários.</p>
+        <span class="fix-label">✦ Correção imediata</span>
+        <pre># 1. REVOGAR a chave Anthropic AGORA:
+#    https://console.anthropic.com/settings/keys → Delete
+
+# 2. Verificar se .env está no .gitignore
+grep ".env" .gitignore
+
+# 3. Se foi commitado, remover do histórico:
+git filter-branch --force --index-filter \
+  "git rm --cached --ignore-unmatch .env _env" \
+  --prune-empty --tag-name-filter cat -- --all
+
+# 4. Gerar novas senhas seguras:
+openssl rand -base64 32   # para senhas de banco
+openssl rand -base64 64   # para JWT_SECRET</pre>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-critical">CRITICAL</span>
+        <span class="finding-title">JWT_SECRET fraco — <code>minha-chave-secreta-super-longa-ai-recruiter-2024</code></span>
+      </div>
+      <div class="finding-body">
+        <p>O segredo JWT encontrado no <code>_env</code> é uma frase previsível e curta. Com ele, qualquer pessoa pode assinar tokens JWT válidos e se passar por qualquer usuário — incluindo ADMINs — sem conhecer a senha.</p>
+        <p><strong>Impacto:</strong> Escalação de privilégios total, bypass completo de autenticação.</p>
+        <span class="fix-label">✦ Correção</span>
+        <pre># Gere um segredo criptograficamente seguro (mínimo 512 bits):
+openssl rand -base64 64
+
+# Cole o output no .env:
+JWT_SECRET=&lt;output do comando acima&gt;
+
+# No application.yml, certifique-se de usar a variável:
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000    # 24h em ms
+  refresh-expiration: 604800000  # 7d em ms</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ALTOS ===== -->
+  <section>
+    <div class="section-head">
+      <h2>🟠 Altos</h2>
+      <span class="count">4 achados — corrigir antes do go-live</span>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-high">HIGH</span>
+        <span class="finding-title">Coluna MySQL <code>content</code> trunca currículos — <code>TEXT</code> → deve ser <code>LONGTEXT</code></span>
+      </div>
+      <div class="finding-body">
+        <p>O campo <code>content</code> da tabela <code>resumes</code> está como <code>TEXT</code> (limite de 65.535 bytes). Currículos em PDF extraídos para texto facilmente excedem esse limite. O erro <code>Data truncation: Data too long for column 'content'</code> confirma isso.</p>
+        <span class="fix-label">✦ Correção — já incluída no mysql-init.sql entregue</span>
+        <pre>-- Execute no banco existente:
+ALTER TABLE resumes MODIFY COLUMN content LONGTEXT;
+
+-- Na entidade JPA Resume.java:
+@Lob
+@Column(columnDefinition = "LONGTEXT")
+private String content;</pre>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-high">HIGH</span>
+        <span class="finding-title">Portas 3306 (MySQL) e 27017 (MongoDB) expostas ao host em produção</span>
+      </div>
+      <div class="finding-body">
+        <p>O <code>docker-compose.yml</code> original expõe as portas dos bancos diretamente para o host com <code>ports: "3306:3306"</code>. Qualquer pessoa com acesso ao IP da máquina pode tentar conexões diretas ao banco.</p>
+        <span class="fix-label">✦ Correção — já no docker-compose.yml entregue</span>
+        <pre># Use 'expose' (interno) ao invés de 'ports' (host) para bancos:
+mysql:
+  expose:
+    - "3306"    # Apenas containers na mesma rede acessam
+  # ports:      # REMOVA isso em produção
+  #   - "3306:3306"</pre>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-high">HIGH</span>
+        <span class="finding-title">Ausência de rate limiting em endpoints de autenticação</span>
+      </div>
+      <div class="finding-body">
+        <p>Sem rate limiting nos endpoints <code>/api/auth/login</code> e <code>/api/auth/register</code>, a aplicação está vulnerável a ataques de força bruta e credential stuffing. Um atacante pode tentar milhares de combinações sem qualquer limitação.</p>
+        <span class="fix-label">✦ Correção — já no nginx.conf entregue</span>
+        <pre># No nginx.conf (já configurado):
+limit_req_zone $binary_remote_addr zone=api_auth:10m rate=10r/m;
+
+location /api/auth/login {
+    limit_req zone=api_auth burst=5 nodelay;
+    limit_req_status 429;
+    ...
+}
+
+# No Spring Security (adicional):
+# Implemente account lockout após 5 tentativas falhas</pre>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-high">HIGH</span>
+        <span class="finding-title">Ausência de HTTPS — aplicação rodando apenas em HTTP</span>
+      </div>
+      <div class="finding-body">
+        <p>Sem HTTPS, tokens JWT e senhas trafegam em texto puro. Qualquer interceptação de rede (man-in-the-middle) expõe credenciais de todos os usuários.</p>
+        <span class="fix-label">✦ Correção</span>
+        <pre># Usando Certbot (Let's Encrypt — gratuito):
+sudo apt install certbot python3-certbot-nginx
+sudo certbot certonly --nginx -d seudominio.com -d www.seudominio.com
+
+# Certificados gerados em:
+# /etc/letsencrypt/live/seudominio.com/fullchain.pem
+# /etc/letsencrypt/live/seudominio.com/privkey.pem
+
+# Monte no container (docker-compose.yml — já configurado):
+volumes:
+  - /etc/letsencrypt/live/seudominio.com:/etc/ssl/ai-recruiter:ro
+
+# Renovação automática:
+sudo systemctl enable certbot.timer</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== MÉDIOS ===== -->
+  <section>
+    <div class="section-head">
+      <h2>🟡 Médios</h2>
+      <span class="count">5 achados — corrigir nas primeiras 2 semanas</span>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-medium">MEDIUM</span>
+        <span class="finding-title">Headers de segurança HTTP ausentes no Nginx original</span>
+      </div>
+      <div class="finding-body">
+        <p>Sem <code>Content-Security-Policy</code>, <code>X-Frame-Options</code>, <code>X-Content-Type-Options</code> e <code>HSTS</code>, a aplicação está vulnerável a XSS, clickjacking e MIME sniffing.</p>
+        <p><span class="fix-label">✦ Correção — já no nginx.conf entregue</span> Todos os headers foram adicionados com valores seguros para produção.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-medium">MEDIUM</span>
+        <span class="finding-title">Containers rodando com capabilities desnecessárias</span>
+      </div>
+      <div class="finding-body">
+        <p>Sem <code>cap_drop: ALL</code> e <code>no-new-privileges</code>, um processo comprometido dentro do container pode escalar privilégios no host Linux.</p>
+        <p><span class="fix-label">✦ Correção — já no docker-compose.yml entregue</span> Todos os containers têm <code>cap_drop: ALL</code> com apenas as capabilities mínimas necessárias.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-medium">MEDIUM</span>
+        <span class="finding-title">Validação de tipo de arquivo no upload de currículo apenas no cliente</span>
+      </div>
+      <div class="finding-body">
+        <p>Se a validação de tipo de arquivo (PDF, DOCX, TXT) ocorre apenas no frontend Vue, um atacante pode enviar qualquer arquivo via curl/Postman, incluindo executáveis ou scripts maliciosos.</p>
+        <span class="fix-label">✦ Correção — no ResumeService.java</span>
+        <pre>// Validar content-type e magic bytes no backend:
+private static final Set&lt;String&gt; ALLOWED_TYPES = Set.of(
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/plain"
+);
+private static final long MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+public void validateFile(MultipartFile file) {
+    if (file.isEmpty() || file.getSize() > MAX_SIZE)
+        throw new BadRequestException("Arquivo inválido ou muito grande");
+    if (!ALLOWED_TYPES.contains(file.getContentType()))
+        throw new BadRequestException("Tipo de arquivo não permitido");
+}</pre>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-medium">MEDIUM</span>
+        <span class="finding-title">Sem limite de recursos por container (memória / CPU)</span>
+      </div>
+      <div class="finding-body">
+        <p>Sem <code>deploy.resources.limits</code>, um único container com problema (ex: memory leak na JVM) pode consumir 100% dos recursos do host, derrubando os outros serviços.</p>
+        <p><span class="fix-label">✦ Correção — já no docker-compose.yml entregue</span> Limites configurados: Backend 768MB/1.5 CPU, MySQL 512MB/1 CPU, MongoDB 512MB/1 CPU, Nginx 128MB/0.5 CPU.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-medium">MEDIUM</span>
+        <span class="finding-title">Logs de erro expõem stack traces para o cliente</span>
+      </div>
+      <div class="finding-body">
+        <p>Em modo <code>dev</code>, o Spring Boot retorna stack traces completos nas respostas de erro HTTP. Isso pode revelar estrutura interna, versões de bibliotecas e caminhos do sistema.</p>
+        <span class="fix-label">✦ Correção — application-prod.yml</span>
+        <pre>server:
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+
+# Global exception handler — retornar apenas mensagem genérica:
+@ExceptionHandler(Exception.class)
+public ResponseEntity&lt;ErrorResponse&gt; handleGeneric(Exception e) {
+    log.error("Internal error", e); // Log interno completo
+    return ResponseEntity.status(500)
+        .body(new ErrorResponse("Erro interno. Tente novamente."));
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== BAIXOS ===== -->
+  <section>
+    <div class="section-head">
+      <h2>🔵 Baixos</h2>
+      <span class="count">3 achados — melhorias recomendadas</span>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-low">LOW</span>
+        <span class="finding-title">Ausência de backup automático dos bancos de dados</span>
+      </div>
+      <div class="finding-body">
+        <span class="fix-label">✦ Solução recomendada</span>
+        <pre># Cron para backup diário do MySQL:
+0 2 * * * docker exec ai-recruiter-mysql \
+  mysqldump -u root -p$MYSQL_ROOT_PASSWORD ai_recruiter \
+  | gzip > /backups/mysql_$(date +\%Y\%m\%d).sql.gz
+
+# Manter 30 dias de histórico:
+0 3 * * * find /backups -name "*.sql.gz" -mtime +30 -delete</pre>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-low">LOW</span>
+        <span class="finding-title">Contas demo com senha fraca em produção</span>
+      </div>
+      <div class="finding-body">
+        <p>As contas <code>candidato@demo.com</code> / <code>demo123</code> e <code>recrutador@demo.com</code> / <code>demo123</code> são documentadas publicamente no README. Em produção, são vetores fáceis de acesso.</p>
+        <span class="fix-label">✦ Correção</span>
+        <pre># Opção 1: Remover as contas demo em produção
+# No DataInitializer.java, condicionar à profile:
+@Profile("!prod")
+@Component
+public class DataInitializer { ... }
+
+# Opção 2: Trocar as senhas por valores fortes antes do deploy</pre>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head">
+        <span class="sev sev-low">LOW</span>
+        <span class="finding-title">Versão do Nginx e Server header expostos</span>
+      </div>
+      <div class="finding-body">
+        <p>Por padrão, o Nginx retorna o header <code>Server: nginx/1.25.x</code>, facilitando fingerprinting da versão e exploração de CVEs conhecidas.</p>
+        <span class="fix-label">✦ Correção — já no nginx.conf entregue</span>
+        <pre>server_tokens off;   # Remove versão do header Server
+# E no proxy: proxy_hide_header Server;</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== OK ===== -->
+  <section>
+    <div class="section-head">
+      <h2>🟢 Boas práticas confirmadas</h2>
+      <span class="count">8 achados positivos</span>
+    </div>
+
+    <ul class="checklist">
+      <li>
+        <span class="check-icon ci-done">✓</span>
+        <span><strong>BCrypt fator 12</strong> — senhas armazenadas com hash robusto. Correto.</span>
+      </li>
+      <li>
+        <span class="check-icon ci-done">✓</span>
+        <span><strong>Spring Security com roles</strong> — CANDIDATE / RECRUITER / ADMIN bem separados no código.</span>
+      </li>
+      <li>
+        <span class="check-icon ci-done">✓</span>
+        <span><strong>CORS configurável por env</strong> — não está hardcoded, correto para múltiplos ambientes.</span>
+      </li>
+      <li>
+        <span class="check-icon ci-done">✓</span>
+        <span><strong>Non-root user no Dockerfile</strong> — containers não rodam como root internamente.</span>
+      </li>
+      <li>
+        <span class="check-icon ci-done">✓</span>
+        <span><strong>Health checks em todos os serviços</strong> — <code>depends_on: condition: service_healthy</code> correto.</span>
+      </li>
+      <li>
+        <span class="check-icon ci-done">✓</span>
+        <span><strong>JWT com expiração</strong> — tokens com TTL configurado, não permanentes.</span>
+      </li>
+      <li>
+        <span class="check-icon ci-done">✓</span>
+        <span><strong>Bean Validation</strong> — validação de inputs nos DTOs com anotações JSR-380.</span>
+      </li>
+      <li>
+        <span class="check-icon ci-done">✓</span>
+        <span><strong>MongoDB para logs</strong> — dados de análise de IA separados do banco relacional. Boa separação de responsabilidades.</span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ===== CHECKLIST FINAL ===== -->
+  <section>
+    <div class="section-head">
+      <h2>☑ Checklist antes do go-live</h2>
+      <span class="count">Execute na ordem</span>
+    </div>
+
+    <ul class="checklist">
+      <li><span class="check-icon ci-todo">✗</span><span><strong>[AGORA]</strong> Revogar chave Anthropic vazada em console.anthropic.com e gerar nova</span></li>
+      <li><span class="check-icon ci-todo">✗</span><span><strong>[AGORA]</strong> Gerar novo JWT_SECRET com <code>openssl rand -base64 64</code></span></li>
+      <li><span class="check-icon ci-todo">✗</span><span><strong>[AGORA]</strong> Gerar novas senhas para MySQL e MongoDB</span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Confirmar que <code>.env</code> está no <code>.gitignore</code> e nunca foi commitado</span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Substituir <code>deploy/nginx.conf</code> pelo arquivo entregue nesta auditoria</span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Substituir <code>docker-compose.yml</code> pelo arquivo entregue nesta auditoria</span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Substituir <code>deploy/mysql-init.sql</code> pelo arquivo entregue (inclui LONGTEXT)</span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Rodar <code>ALTER TABLE resumes MODIFY COLUMN content LONGTEXT;</code> no banco existente</span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Configurar domínio DNS apontando para o IP do servidor</span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Instalar Certbot e obter certificado SSL (<code>certbot certonly --nginx -d seudominio.com</code>)</span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Atualizar <code>CORS_ORIGINS</code> no <code>.env</code> para o domínio real (sem localhost)</span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Atualizar <code>server_name</code> no nginx.conf com o domínio real</span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Definir <code>SPRING_PROFILE=prod</code> no <code>.env</code></span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Adicionar validação de tipo de arquivo no <code>ResumeService.java</code></span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Configurar <code>include-stacktrace: never</code> no <code>application-prod.yml</code></span></li>
+      <li><span class="check-icon ci-todo">✗</span><span>Remover ou proteger contas demo em produção (<code>@Profile("!prod")</code> no DataInitializer)</span></li>
+      <li><span class="check-icon ci-warn">!</span><span>Configurar cron de backup automático do MySQL e MongoDB</span></li>
+      <li><span class="check-icon ci-warn">!</span><span>Configurar monitoramento e alertas (UptimeRobot, BetterStack ou similar)</span></li>
+      <li><span class="check-icon ci-warn">!</span><span>Configurar renovação automática do certificado SSL (<code>systemctl enable certbot.timer</code>)</span></li>
+    </ul>
+  </section>
+
+  <!-- ===== RESUMO DOS ARQUIVOS ===== -->
+  <section>
+    <div class="section-head">
+      <h2>📦 Arquivos entregues nesta auditoria</h2>
+    </div>
+
+    <ul class="checklist">
+      <li><span class="check-icon ci-done">✓</span><span><code>docker-compose.yml</code> — Hardened: portas internas, cap_drop, limites de recursos, redes separadas</span></li>
+      <li><span class="check-icon ci-done">✓</span><span><code>nginx.conf</code> — Rate limiting, security headers, HTTPS, gzip, bloqueio de arquivos sensíveis</span></li>
+      <li><span class="check-icon ci-done">✓</span><span><code>mysql-init.sql</code> — Schema completo com <code>LONGTEXT</code>, índices e permissões mínimas</span></li>
+      <li><span class="check-icon ci-done">✓</span><span><code>.env.example</code> — Template seguro com instruções de geração de segredos</span></li>
+      <li><span class="check-icon ci-done">✓</span><span><code>typography.css</code> — Sistema tipográfico minimalista (DM Serif Display + DM Sans + JetBrains Mono)</span></li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>AI Recruiter Security Audit · Claude Sonnet · 2025</span>
+    <span>Auditoria cobre: infra, configuração, auth, rede, dados. Não substitui pentest profissional.</span>
+  </footer>
+
+</div>
+</body>
+</html>

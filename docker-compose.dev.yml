@@ -1,0 +1,43 @@
+version: '3.9'
+# ============================================================
+# DESENVOLVIMENTO LOCAL
+# Use: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Ou:  make dev
+# ============================================================
+
+services:
+  mysql:
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: devpassword
+      MYSQL_DATABASE: ai_recruiter
+      MYSQL_USER: airecruiter
+      MYSQL_PASSWORD: devpassword
+
+  mongodb:
+    ports:
+      - "27017:27017"
+
+  backend:
+    build:
+      target: build  # Only compile, don't package in dev
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      MYSQL_URL: jdbc:mysql://mysql:3306/ai_recruiter?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      MYSQL_USER: airecruiter
+      MYSQL_PASSWORD: devpassword
+      MONGODB_URI: mongodb://mongodb:27017/ai_recruiter_logs
+      JWT_SECRET: dev-secret-key-not-for-production-use-only
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+    volumes:
+      - ./backend/src:/app/src  # Hot reload source
+    ports:
+      - "8080:8080"
+
+  frontend:
+    # In dev, run Vite dev server directly (not Nginx)
+    # Access via: cd frontend && npm run dev
+    profiles:
+      - disabled  # Skip in dev; run npm run dev locally
