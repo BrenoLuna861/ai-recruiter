@@ -36,7 +36,7 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     @Bean
-   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     return http
         .csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -46,15 +46,10 @@ public class SecurityConfig {
             .requestMatchers(
                 "/",
                 "/index.html",
-                "/static/**",
+                "/favicon.svg",
+                "/favicon.ico",
                 "/assets/**",
-                "/**/*.js",
-                "/**/*.css",
-                "/**/*.png",
-                "/**/*.ico",   // ← resolve o 403 do favicon
-                "/**/*.svg",
-                "/**/*.woff",
-                "/**/*.woff2"
+                "/static/**"
             ).permitAll()
 
             // SUAS ROTAS JÁ LIBERADAS
