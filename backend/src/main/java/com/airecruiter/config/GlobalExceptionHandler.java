@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -50,6 +51,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMaxUpload(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
             .body(new ErrorResponse("Arquivo muito grande. Máximo permitido: 10MB", 413, LocalDateTime.now()));
+    }
+
+    // Deixa o Spring tratar recursos estáticos e rotas do SPA normalmente
+    @ExceptionHandler(NoResourceFoundException.class)
+    public void handleNoResource(NoResourceFoundException ex) throws NoResourceFoundException {
+        throw ex;
     }
 
     @ExceptionHandler(Exception.class)
