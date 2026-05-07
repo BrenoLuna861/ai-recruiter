@@ -1,0 +1,20 @@
+# Outputs do Maven
+target/
+
+# Outputs do frontend (geramos no build, nao copiar do disco)
+frontend/node_modules/
+frontend/dist/
+
+# Logs e dotfiles
+.idea/
+.vscode/
+*.log
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docs e arquivos auxiliares
+README.md
+*.md
