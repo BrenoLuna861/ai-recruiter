@@ -50,8 +50,8 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:dev-secret-key-change-in-production-must-be-256-bits-minimum}
-  expiration: 86400000       # 24h
-  refresh-expiration: 604800000  # 7d
+  expiration: 86400000
+  refresh-expiration: 604800000
 
 anthropic:
   api-key: ${ANTHROPIC_API_KEY}
@@ -78,4 +78,4 @@ logging:
     org.springframework.security: WARN
     org.hibernate.SQL: WARN
   pattern:
-    console: "%d{HH:mm:ss} [%thread] %-5leve
+    console: "%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
