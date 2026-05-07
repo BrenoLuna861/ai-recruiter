@@ -2,13 +2,33 @@
   <div class="auth-page">
     <div class="auth-card">
       <div class="auth-brand">
-        <span class="brand-mark">✦</span>
-        <span class="brand-text">AI Recruiter</span>
+        <RouterLink to="/" class="brand-link">
+          <span class="brand-mark">✦</span>
+          <span class="brand-text">AI Recruiter</span>
+        </RouterLink>
       </div>
       <h1>Criar conta</h1>
       <p class="auth-sub">Junte-se à plataforma de recrutamento inteligente</p>
 
       <div v-if="error" class="error-box" style="margin-bottom:20px">{{ error }}</div>
+
+      <!-- Role selection (also used for Google sign-up) -->
+      <div class="field" style="margin-bottom:16px">
+        <label class="label">Eu sou</label>
+        <select v-model="form.role" class="input">
+          <option value="CANDIDATE">Candidato — Procuro emprego</option>
+          <option value="RECRUITER">Recrutador — Procuro talentos</option>
+        </select>
+      </div>
+
+      <!-- Google sign-up -->
+      <GoogleAuthButton mode="register" :role="form.role" @error="onGoogleError" />
+
+      <div class="divider-row">
+        <span class="divider-line"></span>
+        <span class="divider-label">ou com email</span>
+        <span class="divider-line"></span>
+      </div>
 
       <form @submit.prevent="handleRegister" class="auth-form">
         <div class="field">
@@ -22,13 +42,6 @@
         <div class="field">
           <label class="label">Senha</label>
           <input v-model="form.password" type="password" class="input" placeholder="mínimo 8 caracteres" required minlength="8" />
-        </div>
-        <div class="field">
-          <label class="label">Perfil</label>
-          <select v-model="form.role" class="input">
-            <option value="CANDIDATE">Candidato — Procuro emprego</option>
-            <option value="RECRUITER">Recrutador — Procuro talentos</option>
-          </select>
         </div>
 
         <button type="submit" class="btn btn-primary w-full" :disabled="loading">
@@ -49,6 +62,7 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -68,12 +82,17 @@ async function handleRegister() {
     loading.value = false
   }
 }
+
+function onGoogleError(message: string) {
+  error.value = message
+}
 </script>
 
 <style scoped>
 .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
 .auth-card { width: 100%; max-width: 400px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px; }
 .auth-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 28px; }
+.brand-link { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
 .brand-mark { color: var(--accent); font-size: 18px; }
 .brand-text { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: -0.02em; }
 h1 { font-size: var(--text-3xl); margin-bottom: 6px; }
@@ -83,4 +102,10 @@ h1 { font-size: var(--text-3xl); margin-bottom: 6px; }
 .w-full { width: 100%; justify-content: center; padding: 12px; }
 .auth-footer { text-align: center; font-size: var(--text-sm); color: var(--text-muted); margin-top: 20px; }
 .auth-footer a { color: var(--accent); text-decoration: none; }
+
+.divider-row { display: flex; align-items: center; gap: 12px; margin: 22px 0; }
+.divider-line { flex: 1; height: 1px; background: var(--border); }
+.divider-label {
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);
+}
 </style>

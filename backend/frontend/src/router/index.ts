@@ -4,7 +4,12 @@ import { useAuthStore } from '@/stores/auth'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/dashboard' },
+    {
+      path: '/',
+      name: 'Landing',
+      component: () => import('@/views/LandingView.vue'),
+      meta: { public: true, landing: true }
+    },
     {
       path: '/login',
       name: 'Login',
@@ -44,15 +49,29 @@ const router = createRouter({
       component: () => import('@/views/RecruiterView.vue'),
       meta: { role: 'RECRUITER' }
     },
-    { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
+    { path: '/:pathMatch(.*)*', redirect: '/' }
   ]
 })
 
 router.beforeEach((to, _from, next) => {
   const auth = useAuthStore()
-  if (!to.meta.public && !auth.isAuthenticated) return next('/login')
-  if (to.meta.public && auth.isAuthenticated) return next('/dashboard')
+
+  // Rotas privadas exigem login
+  if (!to.meta.public && !auth.isAuthenticated) return next('/')
+
+  // Usuário logado tentando ver login/register: manda direto pro dashboard
+  if (auth.isAuthenticated && (to.name === 'Login' || to.name === 'Register')) {
+    return next('/dashboard')
+  }
+
+  // Usuário logado abrindo a landing: leva pro dashboard
+  if (auth.isAuthenticated && to.meta.landing) {
+    return next('/dashboard')
+  }
+
+  // Controle por role
   if (to.meta.role && auth.user?.role !== to.meta.role) return next('/dashboard')
+
   next()
 })
 

@@ -61,6 +61,16 @@ anthropic:
 cors:
   allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
 
+google:
+  oauth:
+    client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
+
+admin:
+  bootstrap:
+    email: ${ADMIN_BOOTSTRAP_EMAIL:}
+    password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+    name: ${ADMIN_BOOTSTRAP_NAME:Administrator}
+
 logging:
   level:
     com.airecruiter: INFO

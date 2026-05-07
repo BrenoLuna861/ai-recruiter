@@ -45,5 +45,15 @@ export const useAuthStore = defineStore('auth', () => {
     return res.data
   }
 
-  return { token, user, isAuthenticated, isCandidate, isRecruiter, login, register, logout }
+  async function googleLogin(credential: string, role?: string) {
+    const res = await authApi.google({ credential, role })
+    setAuth(res.data)
+    return res.data
+  }
+
+  return {
+    token, user,
+    isAuthenticated, isCandidate, isRecruiter,
+    login, register, googleLogin, logout
+  }
 })

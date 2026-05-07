@@ -1,9 +1,11 @@
 package com.airecruiter.controller;
 
+import com.airecruiter.dto.request.GoogleAuthRequest;
 import com.airecruiter.dto.request.LoginRequest;
 import com.airecruiter.dto.request.RegisterRequest;
 import com.airecruiter.dto.response.AuthResponse;
 import com.airecruiter.service.AuthService;
+import com.airecruiter.service.GoogleAuthService;
 import com.airecruiter.service.PasswordResetService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -22,6 +24,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final GoogleAuthService googleAuthService;
     private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
@@ -32,6 +35,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest req) {
         return ResponseEntity.ok(authService.login(req));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> google(@Valid @RequestBody GoogleAuthRequest req) {
+        return ResponseEntity.ok(googleAuthService.authenticate(req));
     }
 
     @PostMapping("/forgot-password")

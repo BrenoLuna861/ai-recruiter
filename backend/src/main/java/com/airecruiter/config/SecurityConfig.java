@@ -60,7 +60,13 @@ public class SecurityConfig {
                 ).permitAll()
 
                 // ROTAS DA API
-                .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST,
+                    "/api/auth/register",
+                    "/api/auth/login",
+                    "/api/auth/google",
+                    "/api/auth/forgot-password",
+                    "/api/auth/reset-password"
+                ).permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/auth/health").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/jobs").permitAll()
 

@@ -2,13 +2,24 @@
   <div class="auth-page">
     <div class="auth-card">
       <div class="auth-brand">
-        <span class="brand-mark">✦</span>
-        <span class="brand-text">AI Recruiter</span>
+        <RouterLink to="/" class="brand-link">
+          <span class="brand-mark">✦</span>
+          <span class="brand-text">AI Recruiter</span>
+        </RouterLink>
       </div>
       <h1>Entrar</h1>
       <p class="auth-sub">Acesse sua conta para continuar</p>
 
       <div v-if="error" class="error-box" style="margin-bottom:20px">{{ error }}</div>
+
+      <!-- Google sign-in -->
+      <GoogleAuthButton mode="login" @error="onGoogleError" />
+
+      <div class="divider-row">
+        <span class="divider-line"></span>
+        <span class="divider-label">ou com email</span>
+        <span class="divider-line"></span>
+      </div>
 
       <form @submit.prevent="handleLogin" class="auth-form">
         <div class="field">
@@ -30,12 +41,6 @@
         Não tem conta?
         <RouterLink to="/register">Criar conta</RouterLink>
       </p>
-
-      <div class="demo-box">
-        <p class="demo-label">Contas demo</p>
-        <button class="demo-btn" @click="fillDemo('candidato@demo.com')">Candidato</button>
-        <button class="demo-btn" @click="fillDemo('recrutador@demo.com')">Recrutador</button>
-      </div>
     </div>
   </div>
 </template>
@@ -44,6 +49,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -65,9 +71,8 @@ async function handleLogin() {
   }
 }
 
-function fillDemo(demoEmail: string) {
-  email.value = demoEmail
-  password.value = 'demo123'
+function onGoogleError(message: string) {
+  error.value = message
 }
 </script>
 
@@ -97,6 +102,14 @@ function fillDemo(demoEmail: string) {
   margin-bottom: 28px;
 }
 
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
 .brand-mark { color: var(--accent); font-size: 18px; }
 .brand-text { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: -0.02em; }
 
@@ -106,6 +119,24 @@ h1 { font-size: var(--text-3xl); margin-bottom: 6px; }
   font-size: var(--text-sm);
   color: var(--text-muted);
   margin-bottom: 28px;
+}
+
+.divider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+}
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.divider-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .auth-form { display: flex; flex-direction: column; gap: 16px; }
@@ -122,35 +153,4 @@ h1 { font-size: var(--text-3xl); margin-bottom: 6px; }
 
 .auth-footer a { color: var(--accent); text-decoration: none; }
 .auth-footer a:hover { text-decoration: underline; }
-
-.demo-box {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-  text-align: center;
-}
-
-.demo-label {
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-.demo-btn {
-  background: var(--bg-3);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-family: var(--font-body);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 6px 14px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  margin: 0 4px;
-  transition: all 0.15s;
-}
-.demo-btn:hover { border-color: var(--accent); color: var(--accent); }
 </style>
