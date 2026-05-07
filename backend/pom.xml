@@ -83,7 +83,6 @@
       <artifactId>lombok</artifactId>
       <optional>true</optional>
     </dependency>
-    <!-- Google ID token verification (login com Google) -->
     <dependency>
       <groupId>com.google.api-client</groupId>
       <artifactId>google-api-client</artifactId>
@@ -108,4 +107,13 @@
         <artifactId>spring-boot-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclud
+            <exclude>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+            </exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
