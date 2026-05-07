@@ -43,7 +43,7 @@ public class GoogleAuthService {
     @PostConstruct
     void init() {
         if (googleClientId == null || googleClientId.isBlank()) {
-            log.warn("google.oauth.client-id não configurado. Login com Google ficará desabilitado.");
+            log.warn("google.oauth.client-id nao configurado. Login com Google ficara desabilitado.");
             return;
         }
         verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
@@ -55,7 +55,7 @@ public class GoogleAuthService {
     @Transactional
     public AuthResponse authenticate(GoogleAuthRequest req) {
         if (verifier == null) {
-            throw new IllegalStateException("Login com Google não configurado neste servidor.");
+            throw new IllegalStateException("Login com Google nao configurado neste servidor.");
         }
         Payload payload = verify(req.getCredential());
 
@@ -65,17 +65,17 @@ public class GoogleAuthService {
         }
         Boolean emailVerified = payload.getEmailVerified();
         if (emailVerified != null && !emailVerified) {
-            throw new IllegalArgumentException("Email do Google não verificado.");
+            throw new IllegalArgumentException("Email do Google nao verificado.");
         }
-        String name = (String) payload.get("name");
-        if (name == null || name.isBlank()) name = email;
+
+        String rawName = (String) payload.get("name");
+        final String displayName = (rawName == null || rawName.isBlank()) ? email : rawName;
 
         User user = userRepository.findByEmail(email).orElseGet(() -> {
             User.Role role = req.getRole() != null ? req.getRole() : User.Role.CANDIDATE;
-            // Senha aleatória — usuário entrará sempre via Google
             String randomPwd = UUID.randomUUID().toString() + UUID.randomUUID();
             User created = User.builder()
-                    .name(name)
+                    .name(displayName)
                     .email(email)
                     .passwordHash(passwordEncoder.encode(randomPwd))
                     .role(role)
@@ -91,7 +91,7 @@ public class GoogleAuthService {
         try {
             GoogleIdToken token = verifier.verify(credential);
             if (token == null) {
-                throw new IllegalArgumentException("Token Google inválido.");
+                throw new IllegalArgumentException("Token Google invalido.");
             }
             return token.getPayload();
         } catch (GeneralSecurityException | java.io.IOException e) {
