@@ -15,6 +15,7 @@ spring:
       max-lifetime: 1800000
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     show-sql: false
@@ -77,4 +78,4 @@ logging:
     org.springframework.security: WARN
     org.hibernate.SQL: WARN
   pattern:
-    console: "%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss} [%thread] %-5leve

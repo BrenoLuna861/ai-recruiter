@@ -1,6 +1,7 @@
 package com.airecruiter.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -59,10 +60,8 @@ public class GlobalExceptionHandler {
         throw ex;
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(new ErrorResponse("Erro interno. Tente novamente.", 500, LocalDateTime.now()));
-    }
-}
+    /**
+     * "Broken pipe" / cliente desconectou antes de receber a resposta completa.
+     * Não é bug do servidor — acontece quando o navegador cancela o request
+     * (usuário fechou a aba, navegou pra outra página, perdeu rede etc.).
+     * Logamos em DEBUG para não poluir o log 
