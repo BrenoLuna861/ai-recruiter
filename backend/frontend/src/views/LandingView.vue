@@ -14,6 +14,73 @@
 
     <!-- Hero -->
     <section class="hero">
+      <!-- AI Core: ilustração SVG animada (rede neural minimalista) -->
+      <div class="ai-core" aria-hidden="true">
+        <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
+          <!-- Anéis de pulso (radar) -->
+          <circle class="ring ring-1" cx="160" cy="160" r="40" />
+          <circle class="ring ring-2" cx="160" cy="160" r="60" />
+          <circle class="ring ring-3" cx="160" cy="160" r="80" />
+
+          <!-- Linhas de conexão -->
+          <g class="links">
+            <line x1="160" y1="160" x2="60"  y2="60"  />
+            <line x1="160" y1="160" x2="260" y2="60"  />
+            <line x1="160" y1="160" x2="40"  y2="160" />
+            <line x1="160" y1="160" x2="280" y2="160" />
+            <line x1="160" y1="160" x2="60"  y2="260" />
+            <line x1="160" y1="160" x2="260" y2="260" />
+            <line x1="160" y1="160" x2="160" y2="40"  />
+            <line x1="160" y1="160" x2="160" y2="280" />
+          </g>
+
+          <!-- Pacotes de dados (pontos fluindo nas linhas) -->
+          <g class="packets">
+            <circle r="2.5" cx="0" cy="0">
+              <animateMotion dur="3s" repeatCount="indefinite"
+                path="M 160 160 L 60 60 L 160 160" />
+            </circle>
+            <circle r="2.5" cx="0" cy="0">
+              <animateMotion dur="3.6s" repeatCount="indefinite" begin="0.4s"
+                path="M 160 160 L 260 60 L 160 160" />
+            </circle>
+            <circle r="2.5" cx="0" cy="0">
+              <animateMotion dur="2.8s" repeatCount="indefinite" begin="0.8s"
+                path="M 160 160 L 40 160 L 160 160" />
+            </circle>
+            <circle r="2.5" cx="0" cy="0">
+              <animateMotion dur="3.2s" repeatCount="indefinite" begin="1.2s"
+                path="M 160 160 L 280 160 L 160 160" />
+            </circle>
+            <circle r="2.5" cx="0" cy="0">
+              <animateMotion dur="3.4s" repeatCount="indefinite" begin="1.6s"
+                path="M 160 160 L 60 260 L 160 160" />
+            </circle>
+            <circle r="2.5" cx="0" cy="0">
+              <animateMotion dur="2.6s" repeatCount="indefinite" begin="2s"
+                path="M 160 160 L 260 260 L 160 160" />
+            </circle>
+          </g>
+
+          <!-- Nós satélite -->
+          <g class="nodes">
+            <circle cx="60"  cy="60"  r="6" class="node node-a" />
+            <circle cx="260" cy="60"  r="6" class="node node-b" />
+            <circle cx="40"  cy="160" r="6" class="node node-c" />
+            <circle cx="280" cy="160" r="6" class="node node-d" />
+            <circle cx="60"  cy="260" r="6" class="node node-e" />
+            <circle cx="260" cy="260" r="6" class="node node-f" />
+            <circle cx="160" cy="40"  r="6" class="node node-g" />
+            <circle cx="160" cy="280" r="6" class="node node-h" />
+          </g>
+
+          <!-- Núcleo central -->
+          <circle class="core-glow" cx="160" cy="160" r="22" />
+          <circle class="core" cx="160" cy="160" r="11" />
+          <circle class="core-dot" cx="160" cy="160" r="3.5" />
+        </svg>
+      </div>
+
       <div class="eyebrow">PLATAFORMA INTELIGENTE DE RECRUTAMENTO</div>
       <h1>
         Recrutamento <span class="accent">orientado por IA</span><br />
@@ -100,9 +167,14 @@
     </section>
 
     <footer class="footer">
-      <span>© {{ new Date().getFullYear() }} AI Recruiter</span>
-      <span class="footer-sep">·</span>
-      <span>Plataforma Inteligente de Recrutamento</span>
+      <div class="footer-row">
+        <span>© {{ new Date().getFullYear() }} AI Recruiter</span>
+        <span class="footer-sep">·</span>
+        <span>Plataforma Inteligente de Recrutamento</span>
+      </div>
+      <div class="footer-row footer-credit">
+        Desenvolvido por <span class="credit-name">Breno Luna</span>
+      </div>
     </footer>
   </div>
 </template>
@@ -152,8 +224,97 @@
   max-width: 980px;
   margin: 0 auto;
   text-align: center;
-  padding: 96px 24px 64px;
+  padding: 56px 24px 64px;
 }
+
+/* AI Core animation */
+.ai-core {
+  width: 280px;
+  height: 280px;
+  margin: 0 auto 40px;
+  position: relative;
+  filter: drop-shadow(0 0 30px rgba(110, 231, 183, 0.15));
+}
+.ai-core svg { width: 100%; height: 100%; display: block; }
+
+.ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+  opacity: 0;
+  transform-origin: 160px 160px;
+  animation: ring-pulse 4s ease-out infinite;
+}
+.ring-2 { animation-delay: 1.3s; }
+.ring-3 { animation-delay: 2.6s; }
+
+@keyframes ring-pulse {
+  0%   { opacity: 0; transform: scale(0.6); }
+  20%  { opacity: 0.6; }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+
+.links line {
+  stroke: var(--accent);
+  stroke-width: 0.6;
+  opacity: 0.18;
+  stroke-dasharray: 4 6;
+  animation: line-flow 6s linear infinite;
+}
+
+@keyframes line-flow {
+  to { stroke-dashoffset: -100; }
+}
+
+.packets circle {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 6px var(--accent));
+}
+
+.nodes .node {
+  fill: var(--bg-3);
+  stroke: var(--accent);
+  stroke-width: 1.3;
+  animation: node-pulse 2.4s ease-in-out infinite;
+}
+.nodes .node-a { animation-delay: 0s; }
+.nodes .node-b { animation-delay: 0.3s; }
+.nodes .node-c { animation-delay: 0.6s; }
+.nodes .node-d { animation-delay: 0.9s; }
+.nodes .node-e { animation-delay: 1.2s; }
+.nodes .node-f { animation-delay: 1.5s; }
+.nodes .node-g { animation-delay: 1.8s; }
+.nodes .node-h { animation-delay: 2.1s; }
+
+@keyframes node-pulse {
+  0%, 100% { fill: var(--bg-3); r: 4; }
+  50%      { fill: var(--accent); r: 6.5; }
+}
+
+.core-glow {
+  fill: var(--accent);
+  opacity: 0.12;
+  animation: glow-pulse 2s ease-in-out infinite;
+  transform-origin: 160px 160px;
+}
+.core {
+  fill: var(--accent);
+  opacity: 0.85;
+}
+.core-dot {
+  fill: #0a0a0b;
+  animation: dot-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.10; transform: scale(1); }
+  50%      { opacity: 0.22; transform: scale(1.15); }
+}
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
 .eyebrow {
   font-size: 11px;
   letter-spacing: 0.18em;
@@ -200,6 +361,11 @@
   background: var(--accent);
   display: inline-block;
   box-shadow: 0 0 10px var(--accent);
+  animation: dot-blink 1.6s ease-in-out infinite;
+}
+@keyframes dot-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
 }
 
 /* Features */
@@ -287,15 +453,33 @@
   font-size: var(--text-xs);
   color: var(--text-muted);
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.footer-row {
+  display: flex;
   justify-content: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 .footer-sep { opacity: 0.5; }
+.footer-credit {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+.credit-name {
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
 
 @media (max-width: 600px) {
   .topbar { padding: 16px 20px; }
-  .hero { padding: 56px 20px 40px; }
+  .hero { padding: 40px 20px 40px; }
+  .ai-core { width: 220px; height: 220px; margin-bottom: 28px; }
   .feature-card, .persona { padding: 24px; }
 }
 </style>

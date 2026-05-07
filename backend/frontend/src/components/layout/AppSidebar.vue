@@ -1,5 +1,5 @@
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ 'is-open': open }">
     <!-- Brand -->
     <div class="sidebar-brand">
       <div class="brand-icon">✦</div>
@@ -7,6 +7,7 @@
         <div class="brand-name">AI Recruiter</div>
         <div class="brand-role">{{ auth.user?.role }}</div>
       </div>
+      <button class="close-btn" @click="$emit('close')" aria-label="Fechar menu">×</button>
     </div>
 
     <!-- Nav -->
@@ -64,6 +65,9 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { resumeApi } from '@/services/api'
 
+defineProps<{ open?: boolean }>()
+defineEmits<{ (e: 'close'): void }>()
+
 const auth = useAuthStore()
 const router = useRouter()
 const resumeScore = ref<number | null>(null)
@@ -103,6 +107,7 @@ function handleLogout() {
   padding: 0;
   z-index: 100;
   overflow-y: auto;
+  transition: transform 0.25s var(--ease);
 }
 
 .sidebar-brand {
@@ -111,7 +116,23 @@ function handleLogout() {
   gap: 10px;
   padding: 24px 20px 20px;
   border-bottom: 1px solid var(--border);
+  position: relative;
 }
+
+.close-btn {
+  display: none;
+  position: absolute;
+  top: 12px; right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  width: 28px; height: 28px;
+  border-radius: 4px;
+}
+.close-btn:hover { color: var(--text); background: var(--bg-3); }
 
 .brand-icon {
   font-size: 18px;
@@ -146,7 +167,7 @@ function handleLogout() {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 10px;
+  padding: 11px 10px;
   border-radius: var(--radius);
   font-size: var(--text-sm);
   font-weight: 500;
@@ -265,4 +286,18 @@ function handleLogout() {
 }
 
 .logout-btn:hover { color: var(--danger); }
+
+/* ===== MOBILE ===== */
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 280px;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  }
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+  .close-btn { display: inline-flex; align-items: center; justify-content: center; }
+  .nav-item { padding: 13px 12px; font-size: var(--text-base); }
+}
 </style>
