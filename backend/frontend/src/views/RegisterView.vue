@@ -1,5 +1,10 @@
 <template>
   <div class="auth-page">
+    <RouterLink to="/" class="back-btn" aria-label="Voltar para o início">
+      <span class="back-arrow">←</span>
+      <span class="back-label">Início</span>
+    </RouterLink>
+
     <div class="auth-card">
       <div class="auth-brand">
         <RouterLink to="/" class="brand-link">
@@ -89,8 +94,41 @@ function onGoogleError(message: string) {
 </script>
 
 <style scoped>
-.auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
-.auth-card { width: 100%; max-width: 400px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px; }
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg);
+  position: relative;
+}
+.back-btn {
+  position: absolute;
+  top: 20px; left: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  transition: color 0.15s, border-color 0.15s;
+}
+.back-btn:hover { color: var(--accent); border-color: var(--accent); }
+.back-arrow { font-size: 16px; line-height: 1; }
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+}
 .auth-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 28px; }
 .brand-link { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
 .brand-mark { color: var(--accent); font-size: 18px; }
@@ -107,5 +145,12 @@ h1 { font-size: var(--text-3xl); margin-bottom: 6px; }
 .divider-line { flex: 1; height: 1px; background: var(--border); }
 .divider-label {
   font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);
+}
+
+@media (max-width: 480px) {
+  .auth-page { padding: 12px; padding-top: 70px; }
+  .auth-card { padding: 28px 22px; }
+  .back-btn { top: 14px; left: 14px; padding: 8px 10px; }
+  .back-label { display: none; }
 }
 </style>

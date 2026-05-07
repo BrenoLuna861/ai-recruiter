@@ -23,6 +23,18 @@ const router = createRouter({
       meta: { public: true }
     },
     {
+      path: '/forgot-password',
+      name: 'ForgotPassword',
+      component: () => import('@/views/ForgotPasswordView.vue'),
+      meta: { public: true }
+    },
+    {
+      path: '/reset-password',
+      name: 'ResetPassword',
+      component: () => import('@/views/ResetPasswordView.vue'),
+      meta: { public: true }
+    },
+    {
       path: '/dashboard',
       name: 'Dashboard',
       component: () => import('@/views/DashboardView.vue')
@@ -56,20 +68,18 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const auth = useAuthStore()
 
-  // Rotas privadas exigem login
   if (!to.meta.public && !auth.isAuthenticated) return next('/')
 
-  // Usuário logado tentando ver login/register: manda direto pro dashboard
+  // Usuario logado tentando ver login/register: manda direto pro dashboard
+  // (mas permite forgot/reset password mesmo logado, caso seja necessario)
   if (auth.isAuthenticated && (to.name === 'Login' || to.name === 'Register')) {
     return next('/dashboard')
   }
 
-  // Usuário logado abrindo a landing: leva pro dashboard
   if (auth.isAuthenticated && to.meta.landing) {
     return next('/dashboard')
   }
 
-  // Controle por role
   if (to.meta.role && auth.user?.role !== to.meta.role) return next('/dashboard')
 
   next()
