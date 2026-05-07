@@ -66,6 +66,13 @@ google:
   oauth:
     client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
 
+resend:
+  api-key: ${RESEND_API_KEY:}
+  from: ${RESEND_FROM:AI Recruiter <onboarding@resend.dev>}
+
+app:
+  frontend-url: ${APP_FRONTEND_URL:https://ai-recruiter.com.br}
+
 admin:
   bootstrap:
     email: ${ADMIN_BOOTSTRAP_EMAIL:}
