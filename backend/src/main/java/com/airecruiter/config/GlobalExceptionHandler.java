@@ -51,17 +51,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> handleMaxUpload(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-            .body(new ErrorResponse("Arquivo muito grande. Máximo permitido: 10MB", 413, LocalDateTime.now()));
+            .body(new ErrorResponse("Arquivo muito grande. Maximo permitido: 10MB", 413, LocalDateTime.now()));
     }
 
-    // Deixa o Spring tratar recursos estáticos e rotas do SPA normalmente
+    // Deixa o Spring tratar recursos estaticos e rotas do SPA normalmente
     @ExceptionHandler(NoResourceFoundException.class)
     public void handleNoResource(NoResourceFoundException ex) throws NoResourceFoundException {
         throw ex;
     }
 
-    /**
-     * "Broken pipe" / cliente desconectou antes de receber a resposta completa.
-     * Não é bug do servidor — acontece quando o navegador cancela o request
-     * (usuário fechou a aba, navegou pra outra página, perdeu rede etc.).
-     * Logamos em DEBUG para não poluir o log 
+    // Cliente desconectou antes de receber a resposta. Nao e bug do servidor:
+    // acontece quando o navegador cancela (fechou aba, navegou, perdeu rede).
+    // Logamos em DEBUG e nao tentamos responder, ja que o socket esta fechado.
+    @ExceptionHandler(ClientAbortException.class)
+    public void handleClientAbort(ClientAbortException ex) {
+        log.debug("Client aborted connection: {}", ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
+        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(new ErrorResponse("Erro interno. Tente novamente.", 500, LocalDateTime.now()));
+    }
+}
