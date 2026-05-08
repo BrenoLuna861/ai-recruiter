@@ -65,6 +65,12 @@ public class ResumeService {
 
         try {
             String analysisJson = anthropicService.analyzeResume(content);
+            if (analysisJson == null || analysisJson.isBlank() || "{}".equals(analysisJson.strip())) {
+                log.error("Anthropic returned empty analysis for resume {}", resume.getId());
+                resume.setStatus(Resume.Status.ERROR);
+                resumeRepository.save(resume);
+                return toResponse(resume, null);
+            }
             Map<?, ?> data = objectMapper.readValue(analysisJson, Map.class);
 
             resume.setOverallScore(toInt(data.get("overallScore")));
@@ -74,26 +80,33 @@ public class ResumeService {
             resume.setAtsScore(toInt(data.get("atsScore")));
             resume.setStatus(Resume.Status.DONE);
 
-            ResumeAnalysis analysis = ResumeAnalysis.builder()
-                .resumeId(resume.getId())
-                .userId(user.getId())
-                .fullAnalysis((String) data.get("fullAnalysis"))
-                .summary((String) data.get("summary"))
-                .strengths(toStringList(data.get("strengths")))
-                .weaknesses(toStringList(data.get("weaknesses")))
-                .suggestions(toStringList(data.get("suggestions")))
-                .keywordsFound(toStringList(data.get("keywordsFound")))
-                .keywordsMissing(toStringList(data.get("keywordsMissing")))
-                .rewrittenSummary((String) data.get("rewrittenSummary"))
-                .overallScore(resume.getOverallScore())
-                .skillsScore(resume.getSkillsScore())
-                .experienceScore(resume.getExperienceScore())
-                .formatScore(resume.getFormatScore())
-                .atsScore(resume.getAtsScore())
-                .createdAt(LocalDateTime.now())
-                .build();
-            analysisRepository.save(analysis);
-            resume.setAnalysisMongoId(analysis.getId());
+            // MongoDB save is best-effort: if MongoDB is unavailable the analysis
+            // scores are still returned (they're stored in MySQL), only the detailed
+            // text analysis won't be persisted.
+            try {
+                ResumeAnalysis analysis = ResumeAnalysis.builder()
+                    .resumeId(resume.getId())
+                    .userId(user.getId())
+                    .fullAnalysis((String) data.get("fullAnalysis"))
+                    .summary((String) data.get("summary"))
+                    .strengths(toStringList(data.get("strengths")))
+                    .weaknesses(toStringList(data.get("weaknesses")))
+                    .suggestions(toStringList(data.get("suggestions")))
+                    .keywordsFound(toStringList(data.get("keywordsFound")))
+                    .keywordsMissing(toStringList(data.get("keywordsMissing")))
+                    .rewrittenSummary((String) data.get("rewrittenSummary"))
+                    .overallScore(resume.getOverallScore())
+                    .skillsScore(resume.getSkillsScore())
+                    .experienceScore(resume.getExperienceScore())
+                    .formatScore(resume.getFormatScore())
+                    .atsScore(resume.getAtsScore())
+                    .createdAt(LocalDateTime.now())
+                    .build();
+                analysisRepository.save(analysis);
+                resume.setAnalysisMongoId(analysis.getId());
+            } catch (Exception mongoEx) {
+                log.warn("MongoDB unavailable — detailed analysis not persisted (scores saved to MySQL): {}", mongoEx.getMessage());
+            }
 
         } catch (Exception e) {
             log.error("Analysis error for resume {}: {}", resume.getId(), e.getMessage());

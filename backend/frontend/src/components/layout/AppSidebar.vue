@@ -56,6 +56,12 @@
       </div>
       <button class="logout-btn" @click="handleLogout" title="Sair">⏻</button>
     </div>
+
+    <!-- Logout button — always visible -->
+    <button class="sidebar-logout" @click="handleLogout">
+      <span class="logout-icon">⏻</span>
+      <span>Sair da conta</span>
+    </button>
   </aside>
 </template>
 
@@ -286,6 +292,31 @@ function handleLogout() {
 }
 
 .logout-btn:hover { color: var(--danger); }
+
+.sidebar-logout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 24px);
+  margin: 0 12px 16px;
+  padding: 10px 14px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  text-align: left;
+}
+
+.sidebar-logout:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: rgba(248, 113, 113, 0.05);
+}
+
+.logout-icon { font-size: 14px; }
 
 /* ===== MOBILE ===== */
 @media (max-width: 900px) {

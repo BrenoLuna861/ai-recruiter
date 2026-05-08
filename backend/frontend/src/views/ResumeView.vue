@@ -138,8 +138,12 @@ async function analyze() {
       const file = new File([blob], title.value || 'curriculo.txt', { type: 'text/plain' })
       res = await resumeApi.analyze(file, title.value)
     }
-    result.value = res.data
-    resumes.value = (await resumeApi.list()).data
+    if (res.data?.status === 'ERROR') {
+      error.value = 'A IA não conseguiu analisar o currículo. Verifique se o arquivo tem conteúdo legível e tente novamente.'
+    } else {
+      result.value = res.data
+      resumes.value = (await resumeApi.list()).data
+    }
   } catch (e: any) {
     error.value = e.response?.data?.message || 'Erro ao analisar. Verifique o arquivo e tente novamente.'
   } finally {

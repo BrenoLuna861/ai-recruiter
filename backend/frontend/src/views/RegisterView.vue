@@ -13,7 +13,6 @@
         </RouterLink>
       </div>
       <h1>Criar conta</h1>
-      <p class="auth-sub">Junte-se à plataforma de recrutamento inteligente</p>
 
       <div v-if="error" class="error-box" style="margin-bottom:20px">{{ error }}</div>
 
@@ -132,12 +131,11 @@ function onGoogleError(message: string) {
   border-radius: var(--radius-lg);
   padding: 40px;
 }
-.auth-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 28px; }
+.auth-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
 .brand-link { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
 .brand-mark { color: var(--accent); font-size: 18px; }
 .brand-text { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: -0.02em; }
-h1 { font-size: var(--text-3xl); margin-bottom: 6px; }
-.auth-sub { font-size: var(--text-sm); color: var(--text-muted); margin-bottom: 28px; }
+h1 { font-size: var(--text-3xl); margin-bottom: 22px; }
 .auth-form { display: flex; flex-direction: column; gap: 16px; }
 .field { display: flex; flex-direction: column; }
 .w-full { width: 100%; justify-content: center; padding: 12px; }

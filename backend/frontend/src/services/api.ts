@@ -50,7 +50,8 @@ export const resumeApi = {
     form.append('file', file)
     if (title) form.append('title', title)
     return api.post('/resumes/analyze', form, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000 // 2 min — AI analysis can take a while
     })
   },
   list: () => api.get('/resumes'),
