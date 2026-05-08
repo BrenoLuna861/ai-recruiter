@@ -42,6 +42,9 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // PREFLIGHT CORS — sempre permitir OPTIONS
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                 // ARQUIVOS DO FRONTEND
                 .requestMatchers(
                     "/",
@@ -98,7 +101,4 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
-}
+    public AuthenticationManager

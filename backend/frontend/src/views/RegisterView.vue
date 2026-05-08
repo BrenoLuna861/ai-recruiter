@@ -96,12 +96,15 @@ function onGoogleError(message: string) {
 <style scoped>
 .auth-page {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   background: var(--bg);
   position: relative;
+  overflow-x: hidden;
 }
 .back-btn {
   position: absolute;
