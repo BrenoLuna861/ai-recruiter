@@ -30,7 +30,7 @@ public class Resume {
     @Column(name = "file_path", length = 500)
     private String filePath;
 
-    @Column(name = "file_type", length = 20)
+    @Column(name = "file_type", length = 100)
     private String fileType;
 
     // FIX: LONGTEXT suporta até 4GB — necessário para PDFs extensos
