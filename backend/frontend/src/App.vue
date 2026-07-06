@@ -8,7 +8,7 @@
         <span></span><span></span><span></span>
       </button>
       <div class="mobile-brand">
-        <img src="@/assets/logo.png" alt="AI Recruiter" style="height: 24px; object-fit: contain;" />
+        <img src="@/assets/ChatGPT Image 6 de jul. de 2026, 17_26_22.png" alt="AI Recruiter" style="height: 24px; object-fit: contain;" />
       </div>
     </header>
 
