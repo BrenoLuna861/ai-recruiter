@@ -71,7 +71,12 @@ public class ResumeService {
                 resumeRepository.save(resume);
                 return toResponse(resume, null);
             }
-            Map<?, ?> data = objectMapper.readValue(analysisJson, Map.class);
+
+            String cleanJson = analysisJson.strip();
+            if (cleanJson.startsWith("```")) {
+                cleanJson = cleanJson.replaceAll("^```[a-zA-Z]*\\n?", "").replaceAll("```$", "").strip();
+            }
+            Map<?, ?> data = objectMapper.readValue(cleanJson, Map.class);
 
             resume.setOverallScore(toInt(data.get("overallScore")));
             resume.setSkillsScore(toInt(data.get("skillsScore")));
@@ -80,9 +85,6 @@ public class ResumeService {
             resume.setAtsScore(toInt(data.get("atsScore")));
             resume.setStatus(Resume.Status.DONE);
 
-            // MongoDB save is best-effort: if MongoDB is unavailable the analysis
-            // scores are still returned (they're stored in MySQL), only the detailed
-            // text analysis won't be persisted.
             try {
                 ResumeAnalysis analysis = ResumeAnalysis.builder()
                     .resumeId(resume.getId())
