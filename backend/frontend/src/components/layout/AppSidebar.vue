@@ -2,9 +2,7 @@
   <aside class="sidebar" :class="{ 'is-open': open }">
     <!-- Brand -->
     <div class="sidebar-brand">
-      <div class="brand-icon">✦</div>
-      <div>
-        <div class="brand-name">AI Recruiter</div>
+      <img src="@/assets/logo.png" alt="AI Recruiter" style="height: 28px; object-fit: contain;" />
         <div class="brand-role">{{ auth.user?.role }}</div>
       </div>
       <button class="close-btn" @click="$emit('close')" aria-label="Fechar menu">×</button>

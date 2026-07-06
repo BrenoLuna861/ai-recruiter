@@ -8,8 +8,7 @@
         <span></span><span></span><span></span>
       </button>
       <div class="mobile-brand">
-        <span class="brand-mark">✦</span>
-        <span class="brand-text">AI Recruiter</span>
+        <img src="@/assets/logo.png" alt="AI Recruiter" style="height: 24px; object-fit: contain;" />
       </div>
     </header>
 
