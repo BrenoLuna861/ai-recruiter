@@ -3,8 +3,7 @@
     <!-- Brand -->
     <div class="sidebar-brand">
       <img src="@/assets/logo.png" alt="AI Recruiter" style="height: 28px; object-fit: contain;" />
-        <div class="brand-role">{{ auth.user?.role }}</div>
-      </div>
+      <div class="brand-role">{{ auth.user?.role }}</div>
       <button class="close-btn" @click="$emit('close')" aria-label="Fechar menu">×</button>
     </div>
 
@@ -138,25 +137,13 @@ function handleLogout() {
 }
 .close-btn:hover { color: var(--text); background: var(--bg-3); }
 
-.brand-icon {
-  font-size: 18px;
-  color: var(--accent);
-  line-height: 1;
-}
-
-.brand-name {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-
 .brand-role {
   font-size: 9px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--text-muted);
   margin-top: 2px;
+  flex: 1;
 }
 
 .sidebar-nav {
