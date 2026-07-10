@@ -52,7 +52,7 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:dev-secret-key-change-in-production-must-be-256-bits-minimum}
-  expiration: 86400000
+  expiration: ${JWT_EXPIRATION:2592000000}
   refresh-expiration: 604800000
 
 anthropic:
