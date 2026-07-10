@@ -47,6 +47,14 @@
       <div class="ring-sublabel">de 100 pontos</div>
     </div>
 
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-row">
+      <span class="theme-label">{{ isDark ? '🌙 Escuro' : '☀️ Claro' }}</span>
+      <button class="theme-toggle" @click="toggleTheme" :aria-label="isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'">
+        <span class="toggle-thumb" :class="{ active: !isDark }"></span>
+      </button>
+    </div>
+
     <!-- User -->
     <div class="sidebar-user">
       <div class="user-avatar">{{ initials }}</div>
@@ -57,7 +65,6 @@
       <button class="logout-btn" @click="handleLogout" title="Sair">⏻</button>
     </div>
 
-    <!-- Logout button — always visible -->
     <button class="sidebar-logout" @click="handleLogout">
       <span class="logout-icon">⏻</span>
       <span>Sair da conta</span>
@@ -77,12 +84,22 @@ defineEmits<{ (e: 'close'): void }>()
 const auth = useAuthStore()
 const router = useRouter()
 const resumeScore = ref<number | null>(null)
+const isDark = ref(true)
 
 const initials = computed(() => {
   return auth.user?.name?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?'
 })
 
 onMounted(async () => {
+  const saved = localStorage.getItem('theme')
+  if (saved === 'light') {
+    isDark.value = false
+    document.documentElement.setAttribute('data-theme', 'light')
+  } else {
+    isDark.value = true
+    document.documentElement.removeAttribute('data-theme')
+  }
+
   if (auth.isCandidate) {
     try {
       const res = await resumeApi.list()
@@ -93,6 +110,17 @@ onMounted(async () => {
     } catch {}
   }
 })
+
+function toggleTheme() {
+  isDark.value = !isDark.value
+  if (isDark.value) {
+    document.documentElement.removeAttribute('data-theme')
+    localStorage.setItem('theme', 'dark')
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light')
+    localStorage.setItem('theme', 'light')
+  }
+}
 
 function handleLogout() {
   auth.logout()
@@ -170,152 +198,67 @@ function handleLogout() {
   letter-spacing: 0.01em;
   transition: all 0.15s var(--ease);
 }
-
-.nav-item:hover {
-  color: var(--text);
-  background: var(--bg-3);
-}
-
-.nav-item.active {
-  color: var(--accent);
-  background: var(--accent-dim);
-}
-
-.nav-icon {
-  font-size: 14px;
-  width: 16px;
-  text-align: center;
-}
+.nav-item:hover { color: var(--text); background: var(--bg-3); }
+.nav-item.active { color: var(--accent); background: var(--accent-dim); }
+.nav-icon { font-size: 14px; width: 16px; text-align: center; }
 
 /* Score */
-.sidebar-score {
-  padding: 20px;
-  border-top: 1px solid var(--border);
-  text-align: center;
-}
-
-.score-ring-label {
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-}
-
-.score-ring {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 70px;
-  height: 70px;
-}
-
+.sidebar-score { padding: 20px; border-top: 1px solid var(--border); text-align: center; }
+.score-ring-label { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
+.score-ring { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 70px; height: 70px; }
 .ring-svg { width: 100%; height: 100%; }
+.ring-value { position: absolute; font-family: var(--font-mono); font-size: 1.1rem; font-weight: 600; color: var(--accent); }
+.ring-sublabel { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
 
-.ring-value {
-  position: absolute;
-  font-family: var(--font-mono);
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--accent);
+/* Theme Toggle */
+.theme-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
 }
-
-.ring-sublabel {
-  font-size: 10px;
-  color: var(--text-muted);
-  margin-top: 6px;
+.theme-label { font-size: var(--text-xs); color: var(--text-muted); }
+.theme-toggle {
+  width: 36px; height: 20px;
+  background: var(--border-2);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  padding: 0;
+}
+.theme-toggle:hover { background: var(--accent-dim); }
+.toggle-thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 14px; height: 14px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+}
+.toggle-thumb.active {
+  transform: translateX(16px);
+  background: var(--accent);
 }
 
 /* User */
-.sidebar-user {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 16px 20px;
-  border-top: 1px solid var(--border);
-}
-
-.user-avatar {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  background: var(--accent-dim);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
+.sidebar-user { display: flex; align-items: center; gap: 10px; padding: 16px 16px 20px; border-top: 1px solid var(--border); }
+.user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .user-info { flex: 1; min-width: 0; }
-
-.user-name {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.user-email {
-  font-size: 10px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.logout-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 14px;
-  padding: 4px;
-  border-radius: 4px;
-  transition: color 0.15s;
-}
-
+.user-name { font-size: var(--text-sm); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-email { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logout-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px; border-radius: 4px; transition: color 0.15s; }
 .logout-btn:hover { color: var(--danger); }
 
-.sidebar-logout {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: calc(100% - 24px);
-  margin: 0 12px 16px;
-  padding: 10px 14px;
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-  text-align: left;
-}
-
-.sidebar-logout:hover {
-  color: var(--danger);
-  border-color: var(--danger);
-  background: rgba(248, 113, 113, 0.05);
-}
-
+.sidebar-logout { display: flex; align-items: center; gap: 8px; width: calc(100% - 24px); margin: 0 12px 16px; padding: 10px 14px; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-muted); font-size: var(--text-sm); cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s; text-align: left; }
+.sidebar-logout:hover { color: var(--danger); border-color: var(--danger); background: rgba(248, 113, 113, 0.05); }
 .logout-icon { font-size: 14px; }
 
-/* ===== MOBILE ===== */
 @media (max-width: 900px) {
-  .sidebar {
-    transform: translateX(-100%);
-    width: 280px;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
-  }
-  .sidebar.is-open {
-    transform: translateX(0);
-  }
+  .sidebar { transform: translateX(-100%); width: 280px; box-shadow: 0 0 40px rgba(0, 0, 0, 0.5); }
+  .sidebar.is-open { transform: translateX(0); }
   .close-btn { display: inline-flex; align-items: center; justify-content: center; }
   .nav-item { padding: 13px 12px; font-size: var(--text-base); }
 }
