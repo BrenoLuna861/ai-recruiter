@@ -61,6 +61,12 @@ const router = createRouter({
       component: () => import('@/views/RecruiterView.vue'),
       meta: { role: 'RECRUITER' }
     },
+    {
+      path: '/admin',
+      name: 'Admin',
+      component: () => import('@/views/AdminView.vue'),
+      meta: { role: 'ADMIN' }
+    },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ]
 })
@@ -70,8 +76,6 @@ router.beforeEach((to, _from, next) => {
 
   if (!to.meta.public && !auth.isAuthenticated) return next('/')
 
-  // Usuario logado tentando ver login/register: manda direto pro dashboard
-  // (mas permite forgot/reset password mesmo logado, caso seja necessario)
   if (auth.isAuthenticated && (to.name === 'Login' || to.name === 'Register')) {
     return next('/dashboard')
   }

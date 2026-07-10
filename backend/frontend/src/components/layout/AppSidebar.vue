@@ -24,6 +24,9 @@
       <RouterLink v-if="auth.isRecruiter" to="/recruiter" class="nav-item" active-class="active">
         <span class="nav-icon">◎</span> Recrutamento
       </RouterLink>
+      <RouterLink v-if="auth.user?.role === 'ADMIN'" to="/admin" class="nav-item" active-class="active">
+        <span class="nav-icon">⚙</span> Admin
+      </RouterLink>
     </nav>
 
     <!-- Score (candidate only) -->
