@@ -49,7 +49,6 @@
         <span class="score-badge-large" :class="scoreClass(result.overallScore)">{{ result.overallScore }}/100</span>
       </div>
 
-      <!-- Score Grid -->
       <div class="score-grid">
         <div class="score-card" v-for="(s, label) in scores" :key="label">
           <div class="sc-label">{{ label }}</div>
@@ -60,14 +59,14 @@
         </div>
       </div>
 
-      <!-- Sugestões de Melhoria (via chat com IA) -->
+      <!-- Sugestões -->
       <div class="suggestions-section">
         <button class="btn btn-secondary suggestions-btn" @click="getSuggestions" :disabled="loadingSuggestions">
           <span v-if="loadingSuggestions" class="spinner" style="width:14px;height:14px;border-width:2px;border-color:rgba(255,255,255,0.2);border-top-color:#fff"></span>
           <span>{{ loadingSuggestions ? 'Gerando sugestões...' : '✦ Ver Sugestões de Melhoria' }}</span>
         </button>
 
-        <div v-if="suggestions" class="suggestions-box">
+        <div v-if="suggestions">
           <div class="suggestions-grid">
             <div class="sug-card strengths">
               <div class="sug-title">✓ Pontos Fortes</div>
@@ -93,14 +92,17 @@
           <div v-if="suggestions.rewrittenSummary" class="rewritten-box">
             <div class="rewritten-header">
               <div class="sug-title">✦ Resumo Profissional Reescrito pela IA</div>
-              <button class="btn-copy" @click="copy(suggestions.rewrittenSummary)">{{ copied ? '✓ Copiado' : 'Copiar' }}</button>
+              <div class="rewritten-actions">
+                <button class="btn-copy" @click="copy(suggestions.rewrittenSummary)">{{ copied ? '✓ Copiado' : 'Copiar' }}</button>
+                <button class="btn-download" @click="downloadPDF">⬇ PDF</button>
+                <button class="btn-download" @click="downloadDOCX">⬇ DOCX</button>
+              </div>
             </div>
             <div class="rewritten-text">{{ suggestions.rewrittenSummary }}</div>
           </div>
         </div>
       </div>
 
-      <!-- Analysis text -->
       <div v-if="result.analysis" class="analysis-box card">
         <div class="analysis-label">Análise Completa</div>
         <div class="analysis-text" v-html="formatText(result.analysis)"></div>
@@ -128,6 +130,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { resumeApi, chatApi } from '@/services/api'
+import { jsPDF } from 'jspdf'
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx'
+import { saveAs } from 'file-saver'
 
 const fileInput = ref<HTMLInputElement>()
 const selectedFile = ref<File | null>(null)
@@ -230,6 +235,82 @@ async function copy(text: string) {
   setTimeout(() => { copied.value = false }, 2000)
 }
 
+function downloadPDF() {
+  const doc = new jsPDF()
+  const fileName = (title.value || 'curriculo') + '_melhorado.pdf'
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const margin = 20
+  const maxWidth = pageWidth - margin * 2
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(16)
+  doc.text(title.value || 'Currículo', margin, 20)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(11)
+
+  let y = 35
+
+  if (suggestions.value?.rewrittenSummary) {
+    doc.setFont('helvetica', 'bold')
+    doc.text('Resumo Profissional', margin, y)
+    y += 8
+    doc.setFont('helvetica', 'normal')
+    const lines = doc.splitTextToSize(suggestions.value.rewrittenSummary, maxWidth)
+    doc.text(lines, margin, y)
+    y += lines.length * 6 + 10
+  }
+
+  if (suggestions.value?.suggestions?.length) {
+    doc.setFont('helvetica', 'bold')
+    doc.text('Sugestões de Melhoria', margin, y)
+    y += 8
+    doc.setFont('helvetica', 'normal')
+    suggestions.value.suggestions.forEach((s: string) => {
+      const lines = doc.splitTextToSize('• ' + s, maxWidth)
+      doc.text(lines, margin, y)
+      y += lines.length * 6 + 3
+    })
+  }
+
+  doc.save(fileName)
+}
+
+async function downloadDOCX() {
+  const fileName = (title.value || 'curriculo') + '_melhorado.docx'
+  const children: any[] = []
+
+  children.push(new Paragraph({
+    text: title.value || 'Currículo',
+    heading: HeadingLevel.HEADING_1,
+  }))
+
+  if (suggestions.value?.rewrittenSummary) {
+    children.push(new Paragraph({ text: 'Resumo Profissional', heading: HeadingLevel.HEADING_2 }))
+    children.push(new Paragraph({ children: [new TextRun(suggestions.value.rewrittenSummary)] }))
+    children.push(new Paragraph({ text: '' }))
+  }
+
+  if (suggestions.value?.strengths?.length) {
+    children.push(new Paragraph({ text: 'Pontos Fortes', heading: HeadingLevel.HEADING_2 }))
+    suggestions.value.strengths.forEach((s: string) => {
+      children.push(new Paragraph({ children: [new TextRun('• ' + s)] }))
+    })
+    children.push(new Paragraph({ text: '' }))
+  }
+
+  if (suggestions.value?.suggestions?.length) {
+    children.push(new Paragraph({ text: 'Sugestões de Melhoria', heading: HeadingLevel.HEADING_2 }))
+    suggestions.value.suggestions.forEach((s: string) => {
+      children.push(new Paragraph({ children: [new TextRun('• ' + s)] }))
+    })
+  }
+
+  const doc = new Document({ sections: [{ properties: {}, children }] })
+  const blob = await Packer.toBlob(doc)
+  saveAs(blob, fileName)
+}
+
 function scoreClass(s: number) {
   if (!s) return 'low'
   return s >= 70 ? 'high' : s >= 40 ? 'medium' : 'low'
@@ -243,8 +324,7 @@ function formatText(t: string) { return t.replace(/\n/g, '<br>') }
 <style scoped>
 .upload-zone {
   border: 1.5px dashed var(--border-2); text-align: center;
-  padding: 40px 24px; cursor: pointer; transition: all 0.2s;
-  margin-bottom: 0;
+  padding: 40px 24px; cursor: pointer; transition: all 0.2s; margin-bottom: 0;
 }
 .upload-zone:hover, .upload-zone.dragging { border-color: var(--accent); background: var(--accent-dim); }
 .upload-zone.has-file { border-color: var(--accent); border-style: solid; }
@@ -270,16 +350,15 @@ function formatText(t: string) { return t.replace(/\n/g, '<br>') }
 .sc-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
 .sc-bar { height: 4px; background: var(--border-2); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
 .sc-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
-.sc-fill.high   { background: var(--accent); }
+.sc-fill.high { background: var(--accent); }
 .sc-fill.medium { background: var(--warning); }
-.sc-fill.low    { background: var(--danger); }
+.sc-fill.low { background: var(--danger); }
 .sc-value { font-family: var(--font-mono); font-size: 1.25rem; font-weight: 600; }
-.sc-value.high   { color: var(--accent); }
+.sc-value.high { color: var(--accent); }
 .sc-value.medium { color: var(--warning); }
-.sc-value.low    { color: var(--danger); }
+.sc-value.low { color: var(--danger); }
 .mono { font-family: var(--font-mono); }
 
-/* Suggestions */
 .suggestions-section { margin-bottom: 24px; }
 .suggestions-btn { width: 100%; justify-content: center; padding: 12px; margin-bottom: 16px; }
 .suggestions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -292,10 +371,11 @@ function formatText(t: string) { return t.replace(/\n/g, '<br>') }
 .sug-card li { font-size: var(--text-sm); line-height: 1.7; color: var(--text); margin-bottom: 4px; }
 
 .rewritten-box { margin-top: 12px; background: var(--bg-2); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; }
-.rewritten-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.rewritten-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.rewritten-actions { display: flex; gap: 8px; }
 .rewritten-text { font-size: var(--text-sm); line-height: 1.8; color: var(--text); }
-.btn-copy { font-size: 12px; padding: 4px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: transparent; color: var(--accent); cursor: pointer; transition: all 0.15s; }
-.btn-copy:hover { background: var(--accent-dim); }
+.btn-copy, .btn-download { font-size: 12px; padding: 4px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: transparent; color: var(--accent); cursor: pointer; transition: all 0.15s; }
+.btn-copy:hover, .btn-download:hover { background: var(--accent-dim); }
 
 .analysis-box { margin-bottom: 24px; }
 .analysis-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
@@ -310,8 +390,8 @@ function formatText(t: string) { return t.replace(/\n/g, '<br>') }
 .rt-row:not(.rt-head):hover { background: var(--bg-3); }
 .rt-head { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
 .score-pill { font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 600; padding: 2px 8px; border-radius: 4px; }
-.score-pill.high   { background: rgba(110,231,183,.12); color: var(--accent); }
-.score-pill.medium { background: rgba(251,191,36,.1);   color: var(--warning); }
-.score-pill.low    { background: rgba(248,113,113,.1);  color: var(--danger); }
+.score-pill.high { background: rgba(110,231,183,.12); color: var(--accent); }
+.score-pill.medium { background: rgba(251,191,36,.1); color: var(--warning); }
+.score-pill.low { background: rgba(248,113,113,.1); color: var(--danger); }
 .muted { color: var(--text-muted); }
 </style>
