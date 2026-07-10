@@ -181,6 +181,7 @@ public class ResumeService {
             .createdAt(r.getCreatedAt())
             .updatedAt(r.getUpdatedAt())
             .analysis(analysis)
+            .content(r.getContent())
             .build();
     }
 

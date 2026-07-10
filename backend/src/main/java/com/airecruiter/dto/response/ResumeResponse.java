@@ -19,5 +19,6 @@ public class ResumeResponse {
     private Resume.Status status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private String analysis; // Full analysis text from MongoDB
+    private String analysis;
+    private String content; // Texto extraído do currículo original
 }

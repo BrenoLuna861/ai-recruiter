@@ -5,7 +5,6 @@
       <p class="subtitle">Análise inteligente com agente de IA · Otimização para ATS</p>
     </div>
 
-    <!-- Upload Area -->
     <div class="upload-zone card" :class="{ dragging, 'has-file': selectedFile }"
       @dragover.prevent="dragging=true" @dragleave="dragging=false"
       @drop.prevent="onDrop" @click="fileInput?.click()">
@@ -41,7 +40,6 @@
       <span>{{ loading ? 'Analisando com IA...' : '⚡ Analisar com Agente IA' }}</span>
     </button>
 
-    <!-- Results -->
     <div v-if="result" class="results">
       <hr class="divider" style="margin:32px 0"/>
       <div class="results-header">
@@ -59,11 +57,10 @@
         </div>
       </div>
 
-      <!-- Sugestões -->
       <div class="suggestions-section">
         <button class="btn btn-secondary suggestions-btn" @click="getSuggestions" :disabled="loadingSuggestions">
           <span v-if="loadingSuggestions" class="spinner" style="width:14px;height:14px;border-width:2px;border-color:rgba(255,255,255,0.2);border-top-color:#fff"></span>
-          <span>{{ loadingSuggestions ? 'Gerando sugestões...' : '✦ Ver Sugestões de Melhoria' }}</span>
+          <span>{{ loadingSuggestions ? 'Gerando currículo melhorado...' : '✦ Gerar Currículo Melhorado' }}</span>
         </button>
 
         <div v-if="suggestions">
@@ -88,17 +85,16 @@
             </ul>
           </div>
 
-          <!-- Currículo Reescrito -->
-          <div v-if="suggestions.rewrittenSummary" class="rewritten-box">
+          <div v-if="suggestions.improvedResume" class="rewritten-box">
             <div class="rewritten-header">
-              <div class="sug-title">✦ Resumo Profissional Reescrito pela IA</div>
+              <div class="sug-title">✦ Currículo Melhorado pela IA</div>
               <div class="rewritten-actions">
-                <button class="btn-copy" @click="copy(suggestions.rewrittenSummary)">{{ copied ? '✓ Copiado' : 'Copiar' }}</button>
+                <button class="btn-copy" @click="copy(suggestions.improvedResume)">{{ copied ? '✓ Copiado' : 'Copiar' }}</button>
                 <button class="btn-download" @click="downloadPDF">⬇ PDF</button>
                 <button class="btn-download" @click="downloadDOCX">⬇ DOCX</button>
               </div>
             </div>
-            <div class="rewritten-text">{{ suggestions.rewrittenSummary }}</div>
+            <div class="rewritten-text">{{ suggestions.improvedResume }}</div>
           </div>
         </div>
       </div>
@@ -109,7 +105,6 @@
       </div>
     </div>
 
-    <!-- Resume list -->
     <div v-if="resumes.length" class="prev-section">
       <div class="section-title">Análises anteriores</div>
       <div class="resume-table">
@@ -146,7 +141,6 @@ const result = ref<any>(null)
 const resumes = ref<any[]>([])
 const suggestions = ref<any>(null)
 const copied = ref(false)
-const cachedContent = ref('')
 
 const scores = computed(() => result.value ? {
   'Skills': result.value.skillsScore,
@@ -178,10 +172,8 @@ async function analyze() {
   try {
     let res
     if (selectedFile.value) {
-      cachedContent.value = ''
       res = await resumeApi.analyze(selectedFile.value, title.value)
     } else {
-      cachedContent.value = resumeText.value
       const blob = new Blob([resumeText.value], { type: 'text/plain' })
       const file = new File([blob], title.value || 'curriculo.txt', { type: 'text/plain' })
       res = await resumeApi.analyze(file, title.value)
@@ -202,8 +194,18 @@ async function analyze() {
 async function getSuggestions() {
   loadingSuggestions.value = true
   try {
-    const content = cachedContent.value || resumeText.value
-    const prompt = `Analise este currículo e retorne APENAS um JSON válido sem markdown com: strengths (array de 3 pontos fortes), weaknesses (array de 3 pontos fracos), suggestions (array de 3 sugestões de melhoria), rewrittenSummary (resumo profissional reescrito e otimizado para ATS). Currículo: ${content || 'Score geral: ' + result.value?.overallScore + '/100. Skills: ' + result.value?.skillsScore + '. Experiência: ' + result.value?.experienceScore + '. Formato: ' + result.value?.formatScore + '. ATS: ' + result.value?.atsScore}`
+    const originalContent = result.value?.content || resumeText.value || ''
+    const prompt = `Você é um especialista em currículos. Com base no currículo original abaixo, faça o seguinte:
+1. Identifique 3 pontos fortes
+2. Identifique 3 pontos fracos
+3. Liste 3 sugestões de melhoria
+4. Reescreva o currículo COMPLETO melhorado, mantendo TODOS os dados originais (nome, email, telefone, experiências, formação, habilidades) mas com linguagem mais profissional, otimizado para ATS e com as melhorias aplicadas.
+
+Retorne APENAS um JSON válido sem markdown com os campos: strengths (array), weaknesses (array), suggestions (array), improvedResume (string com o currículo completo melhorado).
+
+CURRÍCULO ORIGINAL:
+${originalContent}`
+
     const res = await chatApi.send(prompt)
     const text = res.data?.response || ''
     const clean = text.replace(/```json|```/g, '').trim()
@@ -213,7 +215,7 @@ async function getSuggestions() {
       strengths: ['Não foi possível carregar os pontos fortes'],
       weaknesses: ['Não foi possível carregar os pontos fracos'],
       suggestions: ['Tente novamente em instantes'],
-      rewrittenSummary: ''
+      improvedResume: ''
     }
   } finally {
     loadingSuggestions.value = false
@@ -238,76 +240,39 @@ async function copy(text: string) {
 function downloadPDF() {
   const doc = new jsPDF()
   const fileName = (title.value || 'curriculo') + '_melhorado.pdf'
-  const pageWidth = doc.internal.pageSize.getWidth()
   const margin = 20
-  const maxWidth = pageWidth - margin * 2
+  const maxWidth = doc.internal.pageSize.getWidth() - margin * 2
+  let y = 20
 
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(16)
-  doc.text(title.value || 'Currículo', margin, 20)
+  const text = suggestions.value?.improvedResume || ''
+  const lines = text.split('\n')
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
 
-  let y = 35
-
-  if (suggestions.value?.rewrittenSummary) {
-    doc.setFont('helvetica', 'bold')
-    doc.text('Resumo Profissional', margin, y)
-    y += 8
-    doc.setFont('helvetica', 'normal')
-    const lines = doc.splitTextToSize(suggestions.value.rewrittenSummary, maxWidth)
-    doc.text(lines, margin, y)
-    y += lines.length * 6 + 10
-  }
-
-  if (suggestions.value?.suggestions?.length) {
-    doc.setFont('helvetica', 'bold')
-    doc.text('Sugestões de Melhoria', margin, y)
-    y += 8
-    doc.setFont('helvetica', 'normal')
-    suggestions.value.suggestions.forEach((s: string) => {
-      const lines = doc.splitTextToSize('• ' + s, maxWidth)
-      doc.text(lines, margin, y)
-      y += lines.length * 6 + 3
-    })
-  }
+  lines.forEach((line: string) => {
+    if (y > 270) { doc.addPage(); y = 20 }
+    if (line.trim() === '') { y += 4; return }
+    const wrapped = doc.splitTextToSize(line, maxWidth)
+    doc.text(wrapped, margin, y)
+    y += wrapped.length * 6 + 2
+  })
 
   doc.save(fileName)
 }
 
 async function downloadDOCX() {
   const fileName = (title.value || 'curriculo') + '_melhorado.docx'
-  const children: any[] = []
+  const text = suggestions.value?.improvedResume || ''
+  const lines = text.split('\n')
 
-  children.push(new Paragraph({
-    text: title.value || 'Currículo',
-    heading: HeadingLevel.HEADING_1,
-  }))
+  const children = lines.map((line: string) => {
+    if (line.trim() === '') return new Paragraph({ text: '' })
+    return new Paragraph({ children: [new TextRun(line)] })
+  })
 
-  if (suggestions.value?.rewrittenSummary) {
-    children.push(new Paragraph({ text: 'Resumo Profissional', heading: HeadingLevel.HEADING_2 }))
-    children.push(new Paragraph({ children: [new TextRun(suggestions.value.rewrittenSummary)] }))
-    children.push(new Paragraph({ text: '' }))
-  }
-
-  if (suggestions.value?.strengths?.length) {
-    children.push(new Paragraph({ text: 'Pontos Fortes', heading: HeadingLevel.HEADING_2 }))
-    suggestions.value.strengths.forEach((s: string) => {
-      children.push(new Paragraph({ children: [new TextRun('• ' + s)] }))
-    })
-    children.push(new Paragraph({ text: '' }))
-  }
-
-  if (suggestions.value?.suggestions?.length) {
-    children.push(new Paragraph({ text: 'Sugestões de Melhoria', heading: HeadingLevel.HEADING_2 }))
-    suggestions.value.suggestions.forEach((s: string) => {
-      children.push(new Paragraph({ children: [new TextRun('• ' + s)] }))
-    })
-  }
-
-  const doc = new Document({ sections: [{ properties: {}, children }] })
-  const blob = await Packer.toBlob(doc)
+  const docFile = new Document({ sections: [{ properties: {}, children }] })
+  const blob = await Packer.toBlob(docFile)
   saveAs(blob, fileName)
 }
 
@@ -322,29 +287,22 @@ function formatText(t: string) { return t.replace(/\n/g, '<br>') }
 </script>
 
 <style scoped>
-.upload-zone {
-  border: 1.5px dashed var(--border-2); text-align: center;
-  padding: 40px 24px; cursor: pointer; transition: all 0.2s; margin-bottom: 0;
-}
+.upload-zone { border: 1.5px dashed var(--border-2); text-align: center; padding: 40px 24px; cursor: pointer; transition: all 0.2s; margin-bottom: 0; }
 .upload-zone:hover, .upload-zone.dragging { border-color: var(--accent); background: var(--accent-dim); }
 .upload-zone.has-file { border-color: var(--accent); border-style: solid; }
 .upload-icon { font-size: 2rem; color: var(--accent); margin-bottom: 10px; }
 .upload-label { font-weight: 500; margin-bottom: 4px; }
 .upload-sub { font-size: var(--text-xs); color: var(--text-muted); }
-
 .text-area-header { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: var(--text-sm); color: var(--text-muted); }
 .char-count { font-family: var(--font-mono); font-size: var(--text-xs); }
 .text-area { width: 100%; background: transparent; border: none; color: var(--text); font-family: var(--font-mono); font-size: 12px; padding: 14px 16px; resize: vertical; outline: none; line-height: 1.6; min-height: 120px; }
-
 .meta-row { display: flex; gap: 12px; margin-bottom: 16px; }
 .analyze-btn { width: 100%; justify-content: center; padding: 14px; font-size: var(--text-sm); }
-
 .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .score-badge-large { font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700; padding: 6px 14px; border-radius: var(--radius); }
-.score-badge-large.high   { background: rgba(110,231,183,.12); color: var(--accent); }
-.score-badge-large.medium { background: rgba(251,191,36,.1);   color: var(--warning); }
-.score-badge-large.low    { background: rgba(248,113,113,.1);  color: var(--danger); }
-
+.score-badge-large.high { background: rgba(110,231,183,.12); color: var(--accent); }
+.score-badge-large.medium { background: rgba(251,191,36,.1); color: var(--warning); }
+.score-badge-large.low { background: rgba(248,113,113,.1); color: var(--danger); }
 .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
 .score-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
 .sc-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
@@ -358,7 +316,6 @@ function formatText(t: string) { return t.replace(/\n/g, '<br>') }
 .sc-value.medium { color: var(--warning); }
 .sc-value.low { color: var(--danger); }
 .mono { font-family: var(--font-mono); }
-
 .suggestions-section { margin-bottom: 24px; }
 .suggestions-btn { width: 100%; justify-content: center; padding: 12px; margin-bottom: 16px; }
 .suggestions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -369,18 +326,15 @@ function formatText(t: string) { return t.replace(/\n/g, '<br>') }
 .sug-title { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; font-weight: 600; }
 .sug-card ul { margin: 0; padding-left: 16px; }
 .sug-card li { font-size: var(--text-sm); line-height: 1.7; color: var(--text); margin-bottom: 4px; }
-
 .rewritten-box { margin-top: 12px; background: var(--bg-2); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; }
 .rewritten-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
 .rewritten-actions { display: flex; gap: 8px; }
-.rewritten-text { font-size: var(--text-sm); line-height: 1.8; color: var(--text); }
+.rewritten-text { font-size: var(--text-sm); line-height: 1.8; color: var(--text); white-space: pre-wrap; }
 .btn-copy, .btn-download { font-size: 12px; padding: 4px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: transparent; color: var(--accent); cursor: pointer; transition: all 0.15s; }
 .btn-copy:hover, .btn-download:hover { background: var(--accent-dim); }
-
 .analysis-box { margin-bottom: 24px; }
 .analysis-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
 .analysis-text { font-size: var(--text-sm); line-height: 1.8; color: var(--text); }
-
 .prev-section { margin-top: 40px; }
 .section-title { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 14px; }
 .resume-table { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
