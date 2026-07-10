@@ -15,7 +15,6 @@
       <div class="upload-sub">{{ selectedFile ? formatSize(selectedFile.size) : 'PDF, DOCX ou TXT · Máx 10MB · Clique para selecionar' }}</div>
     </div>
 
-    <!-- Text fallback -->
     <div style="text-align:center;margin:12px 0;font-size:var(--text-xs);color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase">
       ou cole o texto abaixo
     </div>
@@ -28,7 +27,6 @@
       <textarea v-model="resumeText" class="text-area" placeholder="Cole o conteúdo do seu currículo aqui..." rows="8"></textarea>
     </div>
 
-    <!-- Meta -->
     <div class="meta-row">
       <div class="field" style="flex:2">
         <label class="label">Título do Currículo</label>
@@ -36,10 +34,8 @@
       </div>
     </div>
 
-    <!-- Error -->
     <div v-if="error" class="error-box" style="margin-bottom:16px">{{ error }}</div>
 
-    <!-- Submit -->
     <button class="btn btn-primary analyze-btn" @click="analyze" :disabled="loading || (!selectedFile && !resumeText.trim())">
       <span v-if="loading" class="spinner" style="width:16px;height:16px;border-width:2px;border-color:rgba(0,0,0,0.2);border-top-color:#0a0a0b"></span>
       <span>{{ loading ? 'Analisando com IA...' : '⚡ Analisar com Agente IA' }}</span>
@@ -61,6 +57,46 @@
             <div class="sc-fill" :style="{ width: s + '%' }" :class="scoreClass(s)"></div>
           </div>
           <div class="sc-value mono" :class="scoreClass(s)">{{ s }}</div>
+        </div>
+      </div>
+
+      <!-- Sugestões de Melhoria (via chat com IA) -->
+      <div class="suggestions-section">
+        <button class="btn btn-secondary suggestions-btn" @click="getSuggestions" :disabled="loadingSuggestions">
+          <span v-if="loadingSuggestions" class="spinner" style="width:14px;height:14px;border-width:2px;border-color:rgba(255,255,255,0.2);border-top-color:#fff"></span>
+          <span>{{ loadingSuggestions ? 'Gerando sugestões...' : '✦ Ver Sugestões de Melhoria' }}</span>
+        </button>
+
+        <div v-if="suggestions" class="suggestions-box">
+          <div class="suggestions-grid">
+            <div class="sug-card strengths">
+              <div class="sug-title">✓ Pontos Fortes</div>
+              <ul>
+                <li v-for="(s, i) in suggestions.strengths" :key="i">{{ s }}</li>
+              </ul>
+            </div>
+            <div class="sug-card weaknesses">
+              <div class="sug-title">✗ Pontos Fracos</div>
+              <ul>
+                <li v-for="(s, i) in suggestions.weaknesses" :key="i">{{ s }}</li>
+              </ul>
+            </div>
+          </div>
+          <div class="sug-card improvements" style="margin-top:12px">
+            <div class="sug-title">⚡ Sugestões</div>
+            <ul>
+              <li v-for="(s, i) in suggestions.suggestions" :key="i">{{ s }}</li>
+            </ul>
+          </div>
+
+          <!-- Currículo Reescrito -->
+          <div v-if="suggestions.rewrittenSummary" class="rewritten-box">
+            <div class="rewritten-header">
+              <div class="sug-title">✦ Resumo Profissional Reescrito pela IA</div>
+              <button class="btn-copy" @click="copy(suggestions.rewrittenSummary)">{{ copied ? '✓ Copiado' : 'Copiar' }}</button>
+            </div>
+            <div class="rewritten-text">{{ suggestions.rewrittenSummary }}</div>
+          </div>
         </div>
       </div>
 
@@ -91,7 +127,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { resumeApi } from '@/services/api'
+import { resumeApi, chatApi } from '@/services/api'
 
 const fileInput = ref<HTMLInputElement>()
 const selectedFile = ref<File | null>(null)
@@ -99,9 +135,13 @@ const resumeText = ref('')
 const title = ref('')
 const dragging = ref(false)
 const loading = ref(false)
+const loadingSuggestions = ref(false)
 const error = ref('')
 const result = ref<any>(null)
 const resumes = ref<any[]>([])
+const suggestions = ref<any>(null)
+const copied = ref(false)
+const cachedContent = ref('')
 
 const scores = computed(() => result.value ? {
   'Skills': result.value.skillsScore,
@@ -129,11 +169,14 @@ async function analyze() {
   error.value = ''
   loading.value = true
   result.value = null
+  suggestions.value = null
   try {
     let res
     if (selectedFile.value) {
+      cachedContent.value = ''
       res = await resumeApi.analyze(selectedFile.value, title.value)
     } else {
+      cachedContent.value = resumeText.value
       const blob = new Blob([resumeText.value], { type: 'text/plain' })
       const file = new File([blob], title.value || 'curriculo.txt', { type: 'text/plain' })
       res = await resumeApi.analyze(file, title.value)
@@ -151,12 +194,40 @@ async function analyze() {
   }
 }
 
+async function getSuggestions() {
+  loadingSuggestions.value = true
+  try {
+    const content = cachedContent.value || resumeText.value
+    const prompt = `Analise este currículo e retorne APENAS um JSON válido sem markdown com: strengths (array de 3 pontos fortes), weaknesses (array de 3 pontos fracos), suggestions (array de 3 sugestões de melhoria), rewrittenSummary (resumo profissional reescrito e otimizado para ATS). Currículo: ${content || 'Score geral: ' + result.value?.overallScore + '/100. Skills: ' + result.value?.skillsScore + '. Experiência: ' + result.value?.experienceScore + '. Formato: ' + result.value?.formatScore + '. ATS: ' + result.value?.atsScore}`
+    const res = await chatApi.send(prompt)
+    const text = res.data?.response || ''
+    const clean = text.replace(/```json|```/g, '').trim()
+    suggestions.value = JSON.parse(clean)
+  } catch {
+    suggestions.value = {
+      strengths: ['Não foi possível carregar os pontos fortes'],
+      weaknesses: ['Não foi possível carregar os pontos fracos'],
+      suggestions: ['Tente novamente em instantes'],
+      rewrittenSummary: ''
+    }
+  } finally {
+    loadingSuggestions.value = false
+  }
+}
+
 async function loadResume(id: number) {
   try {
     const res = await resumeApi.get(id)
     result.value = res.data
+    suggestions.value = null
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   } catch {}
+}
+
+async function copy(text: string) {
+  await navigator.clipboard.writeText(text)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 2000)
 }
 
 function scoreClass(s: number) {
@@ -186,10 +257,8 @@ function formatText(t: string) { return t.replace(/\n/g, '<br>') }
 .text-area { width: 100%; background: transparent; border: none; color: var(--text); font-family: var(--font-mono); font-size: 12px; padding: 14px 16px; resize: vertical; outline: none; line-height: 1.6; min-height: 120px; }
 
 .meta-row { display: flex; gap: 12px; margin-bottom: 16px; }
-
 .analyze-btn { width: 100%; justify-content: center; padding: 14px; font-size: var(--text-sm); }
 
-/* Results */
 .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .score-badge-large { font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700; padding: 6px 14px; border-radius: var(--radius); }
 .score-badge-large.high   { background: rgba(110,231,183,.12); color: var(--accent); }
@@ -210,11 +279,28 @@ function formatText(t: string) { return t.replace(/\n/g, '<br>') }
 .sc-value.low    { color: var(--danger); }
 .mono { font-family: var(--font-mono); }
 
+/* Suggestions */
+.suggestions-section { margin-bottom: 24px; }
+.suggestions-btn { width: 100%; justify-content: center; padding: 12px; margin-bottom: 16px; }
+.suggestions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sug-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.sug-card.strengths { border-color: rgba(52,211,153,.3); }
+.sug-card.weaknesses { border-color: rgba(248,113,113,.3); }
+.sug-card.improvements { border-color: rgba(251,191,36,.3); }
+.sug-title { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; font-weight: 600; }
+.sug-card ul { margin: 0; padding-left: 16px; }
+.sug-card li { font-size: var(--text-sm); line-height: 1.7; color: var(--text); margin-bottom: 4px; }
+
+.rewritten-box { margin-top: 12px; background: var(--bg-2); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; }
+.rewritten-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.rewritten-text { font-size: var(--text-sm); line-height: 1.8; color: var(--text); }
+.btn-copy { font-size: 12px; padding: 4px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: transparent; color: var(--accent); cursor: pointer; transition: all 0.15s; }
+.btn-copy:hover { background: var(--accent-dim); }
+
 .analysis-box { margin-bottom: 24px; }
 .analysis-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
 .analysis-text { font-size: var(--text-sm); line-height: 1.8; color: var(--text); }
 
-/* Table */
 .prev-section { margin-top: 40px; }
 .section-title { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 14px; }
 .resume-table { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
