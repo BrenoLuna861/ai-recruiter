@@ -129,6 +129,7 @@ function formatTime(d: Date) {
   height: calc(100vh - 80px);
   margin: -40px -48px;
   padding: 0;
+  width: calc(100% + 96px);
 }
 
 .chat-container {
