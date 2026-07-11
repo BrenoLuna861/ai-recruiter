@@ -62,7 +62,7 @@
         <div class="user-name">{{ auth.user?.name }}</div>
         <div class="user-email">{{ auth.user?.email }}</div>
       </div>
-      <button class="logout-btn" @click="handleLogout" title="Sair">⏻</button>
+      <button class="logout-btn" @click="handleLogout" title="Sair">✕</button>
     </div>
 
     <button class="sidebar-logout" @click="handleLogout">
