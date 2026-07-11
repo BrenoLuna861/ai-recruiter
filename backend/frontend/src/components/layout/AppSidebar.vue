@@ -62,13 +62,6 @@
         <div class="user-name">{{ auth.user?.name }}</div>
         <div class="user-email">{{ auth.user?.email }}</div>
       </div>
-      <button class="logout-btn" @click="handleLogout" title="Sair">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-          <polyline points="16 17 21 12 16 7"/>
-          <line x1="21" y1="12" x2="9" y2="12"/>
-  </svg>
-</button>
     </div>
 
     <button class="sidebar-logout" @click="handleLogout">
@@ -208,7 +201,6 @@ function handleLogout() {
 .nav-item.active { color: var(--accent); background: var(--accent-dim); }
 .nav-icon { font-size: 14px; width: 16px; text-align: center; }
 
-/* Score */
 .sidebar-score { padding: 20px; border-top: 1px solid var(--border); text-align: center; }
 .score-ring-label { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
 .score-ring { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 70px; height: 70px; }
@@ -216,7 +208,6 @@ function handleLogout() {
 .ring-value { position: absolute; font-family: var(--font-mono); font-size: 1.1rem; font-weight: 600; color: var(--accent); }
 .ring-sublabel { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
 
-/* Theme Toggle */
 .theme-toggle-row {
   display: flex;
   align-items: center;
@@ -244,19 +235,13 @@ function handleLogout() {
   border-radius: 50%;
   transition: transform 0.2s, background 0.2s;
 }
-.toggle-thumb.active {
-  transform: translateX(16px);
-  background: var(--accent);
-}
+.toggle-thumb.active { transform: translateX(16px); background: var(--accent); }
 
-/* User */
-.sidebar-user { display: flex; align-items: center; gap: 10px; padding: 16px 16px 20px; border-top: 1px solid var(--border); }
+.sidebar-user { display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px; border-top: 1px solid var(--border); }
 .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .user-info { flex: 1; min-width: 0; }
 .user-name { font-size: var(--text-sm); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .user-email { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.logout-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px; border-radius: 4px; transition: color 0.15s; }
-.logout-btn:hover { color: var(--danger); }
 
 .sidebar-logout { display: flex; align-items: center; gap: 8px; width: calc(100% - 24px); margin: 0 12px 16px; padding: 10px 14px; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-muted); font-size: var(--text-sm); cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s; text-align: left; }
 .sidebar-logout:hover { color: var(--danger); border-color: var(--danger); background: rgba(248, 113, 113, 0.05); }
