@@ -247,7 +247,7 @@ function handleLogout() {
 .user-name { font-size: var(--text-sm); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .user-email { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.sidebar-logout { display: flex; align-items: center; gap: 8px; width: calc(100% - 24px); margin: 0 12px 16px; padding: 10px 14px; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-muted); font-size: var(--text-sm); cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s; text-align: left; }
+.sidebar-logout { display: flex; align-items: center; gap: 8px; width: calc(100% - 24px); margin: 0 12px 16px; padding: 10px 14px; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-muted); font-size: var(--text-sm); cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s; text-align: center; justify-content: center;  }
 .sidebar-logout:hover { color: var(--danger); border-color: var(--danger); background: rgba(248, 113, 113, 0.05); }
 .logout-icon { font-size: 14px; }
 
