@@ -43,7 +43,7 @@
       </RouterLink>
       <RouterLink to="/chat" class="action-card">
         <span class="action-icon">◈</span>
-        <span class="action-label">Agente Alex</span>
+        <span class="action-label">Agente Aria</span>
         <span class="action-sub">Converse com o headhunter IA</span>
       </RouterLink>
       <RouterLink to="/jobs" class="action-card">
