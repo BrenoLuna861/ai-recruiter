@@ -1,8 +1,134 @@
+<template>
+  <div class="chat-page">
+    <div class="chat-container card">
+      <!-- Messages -->
+      <div class="messages" ref="messagesEl">
+        <div class="welcome" v-if="!messages.length">
+          <div class="welcome-icon">◈</div>
+          <div class="welcome-title">Olá, eu sou a Aria</div>
+          <div class="welcome-body">Sua assistente inteligente de recrutamento. Pergunte sobre seu currículo, vagas, entrevistas ou desenvolvimento de carreira.</div>
+          <div class="suggestions">
+            <button class="suggestion" v-for="s in suggestions" :key="s" @click="sendSuggestion(s)">{{ s }}</button>
+          </div>
+        </div>
+
+        <div v-for="(msg, i) in messages" :key="i" class="message" :class="msg.role">
+          <div class="msg-avatar">{{ msg.role === 'user' ? userInitial : '✦' }}</div>
+          <div class="msg-bubble">
+            <div class="msg-text" v-html="formatMessage(msg.content)"></div>
+            <div class="msg-time">{{ formatTime(msg.time) }}</div>
+          </div>
+        </div>
+
+        <div v-if="loading" class="message assistant">
+          <div class="msg-avatar">✦</div>
+          <div class="msg-bubble">
+            <div class="typing">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="chat-input-area">
+        <textarea
+          v-model="inputText"
+          class="chat-input"
+          placeholder="Digite sua mensagem..."
+          rows="1"
+          @keydown.enter.exact.prevent="sendMessage"
+          @input="autoResize"
+          ref="inputEl"
+          :disabled="loading"
+        ></textarea>
+        <button class="send-btn" @click="sendMessage" :disabled="!inputText.trim() || loading">
+          <span v-if="loading" class="spinner" style="width:14px;height:14px;border-width:2px"></span>
+          <span v-else>↑</span>
+        </button>
+      </div>
+      <p class="chat-hint">Enter para enviar · Shift+Enter para nova linha</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, nextTick, computed } from 'vue'
+import { chatApi } from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
+const messages = ref<{ role: string; content: string; time: Date }[]>([])
+const inputText = ref('')
+const loading = ref(false)
+const sessionId = ref('')
+const messagesEl = ref<HTMLElement>()
+const inputEl = ref<HTMLTextAreaElement>()
+
+const userInitial = computed(() => auth.user?.name?.[0]?.toUpperCase() || 'U')
+
+const suggestions = computed(() => auth.isCandidate
+  ? ['Como melhorar meu currículo?', 'Como me preparar para entrevistas?', 'Quais habilidades estão em alta?']
+  : ['Como criar uma boa descrição de vaga?', 'Como avaliar candidatos?', 'Tendências de recrutamento em 2025']
+)
+
+async function sendMessage() {
+  const text = inputText.value.trim()
+  if (!text || loading.value) return
+
+  messages.value.push({ role: 'user', content: text, time: new Date() })
+  inputText.value = ''
+  if (inputEl.value) inputEl.value.style.height = 'auto'
+  loading.value = true
+  await scrollBottom()
+
+  try {
+    const res = await chatApi.send(text, sessionId.value)
+    sessionId.value = res.data.sessionId
+    messages.value.push({ role: 'assistant', content: res.data.response, time: new Date() })
+  } catch {
+    messages.value.push({ role: 'assistant', content: 'Desculpe, ocorreu um erro. Tente novamente.', time: new Date() })
+  } finally {
+    loading.value = false
+    await scrollBottom()
+  }
+}
+
+function sendSuggestion(text: string) {
+  inputText.value = text
+  sendMessage()
+}
+
+function autoResize(e: Event) {
+  const el = e.target as HTMLTextAreaElement
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+}
+
+async function scrollBottom() {
+  await nextTick()
+  if (messagesEl.value) messagesEl.value.scrollTop = messagesEl.value.scrollHeight
+}
+
+function formatMessage(text: string) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>')
+}
+
+function formatTime(d: Date) {
+  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}
+</script>
+
 <style scoped>
 .chat-page {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 80px);
+  margin: -40px -48px;
+  padding: 0;
 }
 
 .chat-container {
@@ -11,9 +137,11 @@
   flex-direction: column;
   overflow: hidden;
   padding: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
   min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
 }
 
 .messages {
@@ -70,10 +198,9 @@
 
 .chat-input-area {
   display: flex; align-items: flex-end; gap: 12px;
-  padding: 16px 24px;
+  padding: 16px 40px;
   border-top: 1px solid var(--border);
   background: var(--bg-2);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .chat-input {
@@ -96,10 +223,10 @@
 .send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: scale(1.05); }
 .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.chat-hint { font-size: 10px; color: var(--text-faint); text-align: center; padding: 6px 0 10px; letter-spacing: 0.05em; background: var(--bg-2); border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+.chat-hint { font-size: 10px; color: var(--text-faint); text-align: center; padding: 6px 0 10px; letter-spacing: 0.05em; background: var(--bg-2); }
 
 @media (max-width: 900px) {
-  .chat-page { height: calc(100vh - var(--mobile-bar-h) - 40px); }
+  .chat-page { margin: calc(-1 * var(--mobile-bar-h) - 20px) -20px -32px; height: calc(100vh - var(--mobile-bar-h)); }
   .messages { padding: 20px 16px; }
   .chat-input-area { padding: 12px 16px; }
   .msg-bubble { max-width: 85%; }
