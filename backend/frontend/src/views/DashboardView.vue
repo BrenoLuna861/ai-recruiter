@@ -1,34 +1,38 @@
 <template>
-  <div>
+  <div class="dashboard">
     <div class="page-header">
       <h1>Dashboard</h1>
       <p class="subtitle">Bem-vindo de volta, {{ auth.user?.name?.split(' ')[0] }}</p>
     </div>
 
-    <!-- Candidate Dashboard -->
+    <!-- Candidate Stats -->
     <div v-if="auth.isCandidate" class="grid">
       <div class="card stat-card">
+        <div class="stat-icon">◎</div>
         <div class="stat-label">Score Geral</div>
-        <div class="stat-value mono">{{ bestScore ?? '—' }}</div>
+        <div class="stat-value">{{ bestScore ?? '—' }}</div>
         <div class="stat-sub">do seu melhor currículo</div>
       </div>
       <div class="card stat-card">
+        <div class="stat-icon">▤</div>
         <div class="stat-label">Currículos</div>
-        <div class="stat-value mono">{{ resumes.length }}</div>
+        <div class="stat-value">{{ resumes.length }}</div>
         <div class="stat-sub">analisados pelo agente</div>
       </div>
       <div class="card stat-card">
+        <div class="stat-icon">◉</div>
         <div class="stat-label">Vagas abertas</div>
-        <div class="stat-value mono">{{ jobs.length }}</div>
+        <div class="stat-value">{{ jobs.length }}</div>
         <div class="stat-sub">disponíveis agora</div>
       </div>
     </div>
 
-    <!-- Recruiter Dashboard -->
+    <!-- Recruiter Stats -->
     <div v-if="auth.isRecruiter" class="grid">
       <div class="card stat-card">
+        <div class="stat-icon">◉</div>
         <div class="stat-label">Vagas ativas</div>
-        <div class="stat-value mono">{{ myJobs.length }}</div>
+        <div class="stat-value">{{ myJobs.length }}</div>
         <div class="stat-sub">publicadas por você</div>
       </div>
     </div>
@@ -38,39 +42,51 @@
     <div class="actions">
       <RouterLink v-if="auth.isCandidate" to="/resume" class="action-card">
         <span class="action-icon">▤</span>
-        <span class="action-label">Analisar Currículo</span>
-        <span class="action-sub">Upload e análise com IA</span>
+        <div class="action-body">
+          <span class="action-label">Analisar Currículo</span>
+          <span class="action-sub">Upload e análise com IA</span>
+        </div>
+        <span class="action-arrow">→</span>
       </RouterLink>
       <RouterLink to="/chat" class="action-card">
         <span class="action-icon">◈</span>
-        <span class="action-label">Agente Aria</span>
-        <span class="action-sub">Converse com o headhunter IA</span>
+        <div class="action-body">
+          <span class="action-label">Agente Aria</span>
+          <span class="action-sub">Converse com o headhunter IA</span>
+        </div>
+        <span class="action-arrow">→</span>
       </RouterLink>
       <RouterLink to="/jobs" class="action-card">
         <span class="action-icon">◉</span>
-        <span class="action-label">Explorar Vagas</span>
-        <span class="action-sub">{{ jobs.length }} oportunidades</span>
+        <div class="action-body">
+          <span class="action-label">Explorar Vagas</span>
+          <span class="action-sub">{{ jobs.length }} oportunidades</span>
+        </div>
+        <span class="action-arrow">→</span>
       </RouterLink>
       <RouterLink v-if="auth.isRecruiter" to="/recruiter" class="action-card">
         <span class="action-icon">◎</span>
-        <span class="action-label">Painel Recrutador</span>
-        <span class="action-sub">Gerencie vagas e candidatos</span>
+        <div class="action-body">
+          <span class="action-label">Painel Recrutador</span>
+          <span class="action-sub">Gerencie vagas e candidatos</span>
+        </div>
+        <span class="action-arrow">→</span>
       </RouterLink>
     </div>
 
     <!-- Recent resumes -->
-    <div v-if="auth.isCandidate && resumes.length" class="section-title">Currículos recentes</div>
-    <div v-if="auth.isCandidate && resumes.length" class="resume-list">
-      <div v-for="r in resumes.slice(0,3)" :key="r.id" class="resume-row card">
-        <div class="resume-info">
-          <div class="resume-title">{{ r.title }}</div>
-          <div class="resume-meta">{{ r.fileType?.split('/')[1]?.toUpperCase() }} · {{ formatDate(r.createdAt) }}</div>
-        </div>
-        <div class="resume-scores">
+    <template v-if="auth.isCandidate && resumes.length">
+      <div class="section-title">Currículos recentes</div>
+      <div class="resume-list">
+        <div v-for="r in resumes.slice(0,3)" :key="r.id" class="resume-row card">
+          <div class="resume-info">
+            <div class="resume-title">{{ r.title }}</div>
+            <div class="resume-meta">{{ r.fileType?.split('/')[1]?.toUpperCase() }} · {{ formatDate(r.createdAt) }}</div>
+          </div>
           <span class="score-pill" :class="scoreClass(r.overallScore)">{{ r.overallScore ?? '—' }}</span>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -111,38 +127,59 @@ function scoreClass(score: number) {
 </script>
 
 <style scoped>
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 36px; }
-.stat-card { text-align: center; padding: 24px 16px; }
-.stat-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
-.stat-value { font-family: var(--font-mono); font-size: 2.5rem; font-weight: 600; color: var(--accent); line-height: 1; }
-.stat-sub { font-size: var(--text-xs); color: var(--text-muted); margin-top: 6px; }
-.mono { font-family: var(--font-mono); }
+.dashboard { min-height: calc(100vh - 80px); }
 
-.section-title { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); margin: 32px 0 14px; }
+/* Stats */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 40px; }
+.stat-card { text-align: center; padding: 32px 20px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.stat-icon { font-size: 28px; color: var(--accent); margin-bottom: 4px; }
+.stat-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
+.stat-value { font-family: var(--font-mono); font-size: 3rem; font-weight: 700; color: var(--accent); line-height: 1; }
+.stat-sub { font-size: var(--text-xs); color: var(--text-muted); }
 
-.actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 36px; }
+/* Section title */
+.section-title { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 16px; }
+
+/* Actions */
+.actions { display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px; }
 .action-card {
-  display: flex; flex-direction: column; gap: 4px;
-  background: var(--bg-2); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 20px;
-  text-decoration: none; color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  text-decoration: none;
+  color: var(--text);
   transition: all 0.15s var(--ease);
 }
-.action-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.action-icon { font-size: 20px; color: var(--accent); }
-.action-label { font-weight: 600; font-size: var(--text-sm); margin-top: 8px; }
-.action-sub { font-size: var(--text-xs); color: var(--text-muted); }
+.action-card:hover { border-color: var(--accent); transform: translateX(4px); }
+.action-icon { font-size: 24px; color: var(--accent); flex-shrink: 0; width: 32px; text-align: center; }
+.action-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.action-label { font-weight: 600; font-size: var(--text-base); }
+.action-sub { font-size: var(--text-sm); color: var(--text-muted); }
+.action-arrow { font-size: 18px; color: var(--text-muted); transition: color 0.15s, transform 0.15s; }
+.action-card:hover .action-arrow { color: var(--accent); transform: translateX(4px); }
 
-.resume-list { display: flex; flex-direction: column; gap: 8px; }
-.resume-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; }
-.resume-title { font-size: var(--text-sm); font-weight: 500; }
-.resume-meta { font-size: var(--text-xs); color: var(--text-muted); margin-top: 2px; }
+/* Resume list */
+.resume-list { display: flex; flex-direction: column; gap: 10px; }
+.resume-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 24px; }
+.resume-title { font-size: var(--text-base); font-weight: 500; }
+.resume-meta { font-size: var(--text-xs); color: var(--text-muted); margin-top: 3px; }
 
 .score-pill {
   font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 600;
-  padding: 4px 10px; border-radius: 4px;
+  padding: 4px 12px; border-radius: 4px; flex-shrink: 0;
 }
 .score-pill.high   { background: rgba(110,231,183,.12); color: var(--accent); }
 .score-pill.medium { background: rgba(251,191,36,.1);   color: var(--warning); }
 .score-pill.low    { background: rgba(248,113,113,.1);  color: var(--danger); }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .stat-value { font-size: 2.2rem; }
+  .action-card { padding: 16px 18px; }
+  .action-label { font-size: var(--text-sm); }
+}
 </style>
