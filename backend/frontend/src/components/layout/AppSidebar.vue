@@ -62,7 +62,12 @@
         <div class="user-name">{{ auth.user?.name }}</div>
         <div class="user-email">{{ auth.user?.email }}</div>
       </div>
-      <button class="logout-btn" @click="handleLogout" title="Sair">✕</button>
+      <button class="logout-btn" @click="handleLogout" title="Sair">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+          <line x1="12" y1="2" x2="12" y2="12"/>
+  </svg>
+</button>
     </div>
 
     <button class="sidebar-logout" @click="handleLogout">
