@@ -7,9 +7,7 @@
         <span class="brand-text">AI Recruiter</span>
       </div>
       <nav class="topbar-nav">
-        <button class="theme-btn" @click="toggleTheme" :title="isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'">
-          {{ isDark ? '☀️' : '🌙' }}
-        </button>
+        <ThemeToggle variant="icon" />
         <RouterLink to="/login" class="link">Entrar</RouterLink>
         <RouterLink to="/register" class="btn btn-primary btn-sm">Criar conta</RouterLink>
       </nav>
@@ -135,31 +133,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-
-const isDark = ref(true)
-
-onMounted(() => {
-  const saved = localStorage.getItem('theme')
-  if (saved === 'light') {
-    isDark.value = false
-    document.documentElement.setAttribute('data-theme', 'light')
-  } else {
-    isDark.value = true
-    document.documentElement.removeAttribute('data-theme')
-  }
-})
-
-function toggleTheme() {
-  isDark.value = !isDark.value
-  if (isDark.value) {
-    document.documentElement.removeAttribute('data-theme')
-    localStorage.setItem('theme', 'dark')
-  } else {
-    document.documentElement.setAttribute('data-theme', 'light')
-    localStorage.setItem('theme', 'light')
-  }
-}
+import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 </script>
 
 <style scoped>
@@ -180,7 +154,7 @@ function toggleTheme() {
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  background: rgba(10, 10, 11, 0.7);
+  background: var(--bg-overlay);
   backdrop-filter: blur(8px);
   z-index: 50;
 }
@@ -192,17 +166,6 @@ function toggleTheme() {
 .link:hover { color: var(--text); }
 .btn-sm { padding: 8px 14px; font-size: var(--text-xs); }
 
-.theme-btn {
-  background: var(--bg-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 6px 10px;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  transition: border-color 0.15s, background 0.15s;
-}
-.theme-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
 
 .hero { max-width: 980px; margin: 0 auto; text-align: center; padding: 56px 24px 64px; }
 

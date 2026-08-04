@@ -21,6 +21,11 @@
   --warning:      #fbbf24;
   --blue:         #60a5fa;
 
+  /* Superficies que nao podem ser cor fixa, senao nao acompanham o tema */
+  --bg-overlay:   rgba(10, 10, 11, 0.85);  /* barras translucidas */
+  --backdrop:     rgba(0, 0, 0, 0.55);     /* fundo atras da sidebar mobile */
+  --on-accent:    #0a0a0b;                 /* texto sobre fundo accent */
+
   --sidebar-w:    220px;
   --mobile-bar-h: 56px;
   --radius:       6px;
@@ -54,6 +59,10 @@
   --danger:       #dc2626;
   --warning:      #d97706;
   --blue:         #2563eb;
+
+  --bg-overlay:   rgba(245, 245, 247, 0.85);
+  --backdrop:     rgba(0, 0, 0, 0.35);
+  --on-accent:    #ffffff;
 }
 
 /* ===== Reset ===== */

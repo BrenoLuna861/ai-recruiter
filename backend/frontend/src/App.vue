@@ -46,7 +46,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
   top: 0; left: 0; right: 0;
   height: 56px;
   z-index: 80;
-  background: rgba(10, 10, 11, 0.85);
+  background: var(--bg-overlay);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
   padding: 0 16px;
@@ -95,7 +95,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--backdrop);
   z-index: 90;
   animation: fade-in 0.18s ease;
 }

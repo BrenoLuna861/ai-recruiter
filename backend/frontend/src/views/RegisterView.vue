@@ -5,6 +5,8 @@
       <span class="back-label">Início</span>
     </RouterLink>
 
+    <ThemeToggle variant="icon" floating />
+
     <div class="auth-card">
       <div class="auth-brand">
         <RouterLink to="/" class="brand-link">
@@ -66,6 +68,7 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton.vue'
 
 const router = useRouter()

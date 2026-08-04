@@ -49,10 +49,7 @@
 
     <!-- Theme Toggle -->
     <div class="theme-toggle-row">
-      <span class="theme-label">{{ isDark ? '🌙 Escuro' : '☀️ Claro' }}</span>
-      <button class="theme-toggle" @click="toggleTheme" :aria-label="isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'">
-        <span class="toggle-thumb" :class="{ active: !isDark }"></span>
-      </button>
+      <ThemeToggle variant="switch" />
     </div>
 
     <!-- User -->
@@ -80,6 +77,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { resumeApi } from '@/services/api'
+import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
 defineProps<{ open?: boolean }>()
 defineEmits<{ (e: 'close'): void }>()
@@ -87,22 +85,12 @@ defineEmits<{ (e: 'close'): void }>()
 const auth = useAuthStore()
 const router = useRouter()
 const resumeScore = ref<number | null>(null)
-const isDark = ref(true)
 
 const initials = computed(() => {
   return auth.user?.name?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?'
 })
 
 onMounted(async () => {
-  const saved = localStorage.getItem('theme')
-  if (saved === 'light') {
-    isDark.value = false
-    document.documentElement.setAttribute('data-theme', 'light')
-  } else {
-    isDark.value = true
-    document.documentElement.removeAttribute('data-theme')
-  }
-
   if (auth.isCandidate) {
     try {
       const res = await resumeApi.list()
@@ -113,17 +101,6 @@ onMounted(async () => {
     } catch {}
   }
 })
-
-function toggleTheme() {
-  isDark.value = !isDark.value
-  if (isDark.value) {
-    document.documentElement.removeAttribute('data-theme')
-    localStorage.setItem('theme', 'dark')
-  } else {
-    document.documentElement.setAttribute('data-theme', 'light')
-    localStorage.setItem('theme', 'light')
-  }
-}
 
 function handleLogout() {
   auth.logout()
@@ -219,27 +196,6 @@ function handleLogout() {
   padding: 12px 16px;
   border-top: 1px solid var(--border);
 }
-.theme-label { font-size: var(--text-xs); color: var(--text-muted); }
-.theme-toggle {
-  width: 36px; height: 20px;
-  background: var(--border-2);
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  position: relative;
-  transition: background 0.2s;
-  padding: 0;
-}
-.theme-toggle:hover { background: var(--accent-dim); }
-.toggle-thumb {
-  position: absolute;
-  top: 3px; left: 3px;
-  width: 14px; height: 14px;
-  background: var(--text-muted);
-  border-radius: 50%;
-  transition: transform 0.2s, background 0.2s;
-}
-.toggle-thumb.active { transform: translateX(16px); background: var(--accent); }
 
 .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px; border-top: 1px solid var(--border); }
 .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }

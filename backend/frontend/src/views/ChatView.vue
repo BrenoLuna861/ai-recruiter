@@ -217,7 +217,7 @@ function formatTime(d: Date) {
   width: 42px; height: 42px; border-radius: var(--radius);
   background: var(--accent); border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; font-weight: 700; color: #0a0a0b;
+  font-size: 18px; font-weight: 700; color: var(--on-accent);
   flex-shrink: 0; transition: all 0.15s;
 }
 .send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: scale(1.05); }
