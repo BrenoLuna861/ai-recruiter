@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -96,16 +97,36 @@ public class EmailService {
                 "html", htmlBody
         );
 
-        // block() com timeout: sem ele, uma instabilidade do Resend prenderia a
-        // thread da requisicao indefinidamente.
-        webClient.post()
-                .uri("/emails")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + resendApiKey)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(payload)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block(Duration.ofSeconds(10));
+        // Sem chave configurada nao adianta chamar a API: o Resend responde 403 e a
+        // mensagem nao diz o motivo real. Em vez disso, imprimimos o link no log para
+        // o fluxo poder ser testado em desenvolvimento sem provedor nenhum.
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            log.warn("""
+                    RESEND_API_KEY nao configurada — e-mail NAO foi enviado.
+                    Link de recuperacao (valido por {} min): {}
+                    Configure RESEND_API_KEY e RESEND_FROM para enviar de verdade.""",
+                    ttlMinutes, resetLink);
+            return;
+        }
+
+        try {
+            // block() com timeout: sem ele, uma instabilidade do Resend prenderia a
+            // thread da requisicao indefinidamente.
+            webClient.post()
+                    .uri("/emails")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + resendApiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(payload)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block(Duration.ofSeconds(10));
+        } catch (WebClientResponseException e) {
+            // O status sozinho nao diz nada util: o Resend explica a recusa no corpo
+            // da resposta ("domain not verified", "can only send to your own
+            // address", etc). Sem isso, um 403 vira adivinhacao.
+            throw new IllegalStateException(
+                    "Resend recusou o envio (" + e.getStatusCode() + "): " + e.getResponseBodyAsString(), e);
+        }
 
         log.info("Email de recuperação enviado");
     }
