@@ -6,6 +6,14 @@
 # Certificados SSL
 deploy/ssl/
 
+# ===== Artefatos de build =====
+# Nada aqui precisa estar no git: o Dockerfile reconstroi o frontend e o backend
+# do zero a cada deploy. Manter esses diretorios rastreados so gera diff gigante
+# a cada build e o risco de commitar artefato desatualizado sem querer.
+node_modules/
+dist/
+target/
+
 # Compiled class file
 *.class
 

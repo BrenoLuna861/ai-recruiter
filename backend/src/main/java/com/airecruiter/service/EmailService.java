@@ -3,6 +3,8 @@ package com.airecruiter.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,9 @@ public class EmailService {
 
     @Value("${app.frontend-url:https://ai-recruiter-production-f3a0.up.railway.app}")
     private String frontendUrl;
+
+    /** Injetado pelo @RequiredArgsConstructor — usado para saber se estamos em dev. */
+    private final Environment environment;
 
     private final WebClient webClient = WebClient.builder()
             .baseUrl("https://api.resend.com")
@@ -97,15 +102,20 @@ public class EmailService {
                 "html", htmlBody
         );
 
-        // Sem chave configurada nao adianta chamar a API: o Resend responde 403 e a
-        // mensagem nao diz o motivo real. Em vez disso, imprimimos o link no log para
-        // o fluxo poder ser testado em desenvolvimento sem provedor nenhum.
         if (resendApiKey == null || resendApiKey.isBlank()) {
-            log.warn("""
-                    RESEND_API_KEY nao configurada — e-mail NAO foi enviado.
-                    Link de recuperacao (valido por {} min): {}
-                    Configure RESEND_API_KEY e RESEND_FROM para enviar de verdade.""",
-                    ttlMinutes, resetLink);
+            // Em dev, imprimir o link no log deixa o fluxo testavel sem provedor
+            // nenhum. Em producao isso seria um vazamento: qualquer um com acesso
+            // aos logs poderia trocar a senha de qualquer conta. Por isso o link
+            // so aparece no profile dev.
+            if (environment.acceptsProfiles(Profiles.of("dev"))) {
+                log.warn("""
+                        RESEND_API_KEY nao configurada — e-mail NAO foi enviado.
+                        Link de recuperacao (valido por {} min): {}""",
+                        ttlMinutes, resetLink);
+            } else {
+                log.error("RESEND_API_KEY nao configurada — nenhum e-mail de recuperacao "
+                        + "esta sendo enviado. Configure a variavel no ambiente.");
+            }
             return;
         }
 
