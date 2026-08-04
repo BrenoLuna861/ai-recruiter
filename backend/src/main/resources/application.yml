@@ -75,6 +75,16 @@ resend:
 app:
   frontend-url: ${APP_FRONTEND_URL:https://ai-recruiter.com.br}
 
+password-reset:
+  # Validade do link enviado por e-mail
+  ttl-minutes: ${PASSWORD_RESET_TTL_MINUTES:15}
+  # Quantos pedidos o MESMO e-mail pode fazer dentro da janela do ttl
+  max-per-email-window: ${PASSWORD_RESET_MAX_PER_EMAIL:3}
+  rate-limit:
+    # Freio por IP. Em memoria — valido enquanto railway.json fixar numReplicas: 1
+    max-per-window: ${PASSWORD_RESET_RATE_MAX:5}
+    window-minutes: ${PASSWORD_RESET_RATE_WINDOW:15}
+
 admin:
   bootstrap:
     email: ${ADMIN_BOOTSTRAP_EMAIL:}

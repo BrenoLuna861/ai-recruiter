@@ -40,6 +40,8 @@ export const authApi = {
     api.post('/auth/forgot-password', data),
   resetPassword: (data: { token: string; newPassword: string }) =>
     api.post('/auth/reset-password', data),
+  validateResetToken: (token: string) =>
+    api.get('/auth/reset-password/validate', { params: { token } }),
   health: () => api.get('/auth/health')
 }
 

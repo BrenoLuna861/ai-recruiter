@@ -71,6 +71,7 @@ public class SecurityConfig {
                     "/api/auth/reset-password"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/auth/health").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/auth/reset-password/validate").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/jobs").permitAll()
 
                 // TUDO O QUE NÃO ESTÁ ACIMA CONTINUA EXIGINDO LOGIN

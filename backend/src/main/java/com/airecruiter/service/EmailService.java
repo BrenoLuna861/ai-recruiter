@@ -8,6 +8,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Map;
 
 @Slf4j
@@ -28,8 +31,15 @@ public class EmailService {
             .baseUrl("https://api.resend.com")
             .build();
 
-    public void sendPasswordResetEmail(String toEmail, String token) {
-        String resetLink = frontendUrl + "/reset-password?token=" + token;
+    public void sendPasswordResetEmail(String toEmail, String token, int ttlMinutes) {
+        // O token vai na URL, entao precisa ser URL-safe. Ele ja e base64url,
+        // mas encodamos por seguranca caso o gerador mude no futuro.
+        String resetLink = frontendUrl + "/reset-password?token="
+                + URLEncoder.encode(token, StandardCharsets.UTF_8);
+
+        String validade = ttlMinutes >= 60
+                ? (ttlMinutes / 60) + (ttlMinutes / 60 == 1 ? " hora" : " horas")
+                : ttlMinutes + " minutos";
 
         String htmlBody = """
             <!DOCTYPE html>
@@ -68,7 +78,7 @@ public class EmailService {
                   </div>
                   <p>Se o botão não funcionar, copie e cole este link no seu navegador:</p>
                   <p class="link">%s</p>
-                  <p style="margin-top:24px">Este link expira em <strong style="color:#e5e5e5">1 hora</strong>. Se você não solicitou a recuperação de senha, ignore este email.</p>
+                  <p style="margin-top:24px">Este link expira em <strong style="color:#e5e5e5">%s</strong> e só pode ser usado uma vez. Se você não solicitou a recuperação de senha, ignore este email — sua senha atual continua valendo.</p>
                 </div>
                 <div class="footer">
                   AI Recruiter — Plataforma Inteligente de Recrutamento<br>
@@ -77,7 +87,7 @@ public class EmailService {
               </div>
             </body>
             </html>
-            """.formatted(resetLink, resetLink);
+            """.formatted(resetLink, resetLink, validade);
 
         Map<String, Object> payload = Map.of(
                 "from", fromEmail,
@@ -86,19 +96,17 @@ public class EmailService {
                 "html", htmlBody
         );
 
-        try {
-            webClient.post()
-                    .uri("/emails")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + resendApiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(payload)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-            log.info("Email de recuperação enviado para: {}", toEmail);
-        } catch (Exception e) {
-            log.error("Erro ao enviar email de recuperação: {}", e.getMessage());
-            throw new RuntimeException("Erro ao enviar email");
-        }
+        // block() com timeout: sem ele, uma instabilidade do Resend prenderia a
+        // thread da requisicao indefinidamente.
+        webClient.post()
+                .uri("/emails")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + resendApiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block(Duration.ofSeconds(10));
+
+        log.info("Email de recuperação enviado");
     }
 }

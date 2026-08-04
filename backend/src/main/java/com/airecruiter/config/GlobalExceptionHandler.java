@@ -1,5 +1,6 @@
 package com.airecruiter.config;
 
+import com.airecruiter.exception.PasswordResetException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArg(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest()
+            .body(new ErrorResponse(ex.getMessage(), 400, LocalDateTime.now()));
+    }
+
+    @ExceptionHandler(PasswordResetException.class)
+    public ResponseEntity<ErrorResponse> handlePasswordReset(PasswordResetException ex) {
+        // Nao logamos como erro: token invalido/expirado e fluxo normal, nao bug.
+        log.debug("Falha no fluxo de reset de senha: {}", ex.getMessage());
         return ResponseEntity.badRequest()
             .body(new ErrorResponse(ex.getMessage(), 400, LocalDateTime.now()));
     }

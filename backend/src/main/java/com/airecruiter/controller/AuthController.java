@@ -7,6 +7,7 @@ import com.airecruiter.dto.response.AuthResponse;
 import com.airecruiter.service.AuthService;
 import com.airecruiter.service.GoogleAuthService;
 import com.airecruiter.service.PasswordResetService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -42,21 +43,42 @@ public class AuthController {
         return ResponseEntity.ok(googleAuthService.authenticate(req));
     }
 
+    /**
+     * Responde 200 SEMPRE, independente de o e-mail existir, de a conta estar
+     * ativa ou de o envio ter falhado. Qualquer resposta diferente permitiria
+     * descobrir quais e-mails tem conta na plataforma.
+     */
     @PostMapping("/forgot-password")
-    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
-        passwordResetService.requestPasswordReset(req.getEmail());
-        // Sempre retorna sucesso por segurança
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req,
+                                                              HttpServletRequest http) {
+        passwordResetService.requestPasswordReset(req.getEmail(), clientIp(http));
         return ResponseEntity.ok(Map.of("message", "Se o email existir, você receberá as instruções em breve."));
     }
 
+    /** A tela de reset chama isto antes de mostrar o formulario. */
+    @GetMapping("/reset-password/validate")
+    public ResponseEntity<Map<String, Object>> validateResetToken(@RequestParam String token) {
+        return ResponseEntity.ok(Map.of("valid", passwordResetService.isTokenValid(token)));
+    }
+
+    /** Erros de negocio sobem como PasswordResetException e viram 400 no GlobalExceptionHandler. */
     @PostMapping("/reset-password")
     public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
-        try {
-            passwordResetService.resetPassword(req.getToken(), req.getNewPassword());
-            return ResponseEntity.ok(Map.of("message", "Senha redefinida com sucesso."));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        passwordResetService.resetPassword(req.getToken(), req.getNewPassword());
+        return ResponseEntity.ok(Map.of("message", "Senha redefinida com sucesso."));
+    }
+
+    /**
+     * Atras do proxy do Railway o remoteAddr e sempre o IP interno do balanceador,
+     * o que faria o rate limit valer para o mundo inteiro de uma vez. O IP real
+     * vem no X-Forwarded-For (primeiro item da lista).
+     */
+    private String clientIp(HttpServletRequest http) {
+        String forwarded = http.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
         }
+        return http.getRemoteAddr();
     }
 
     @GetMapping("/health")
