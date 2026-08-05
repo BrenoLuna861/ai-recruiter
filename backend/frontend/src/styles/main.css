@@ -28,6 +28,7 @@
 
   --sidebar-w:    220px;
   --mobile-bar-h: 56px;
+  --footer-h:     44px;   /* barra fixa das telas internas */
   --radius:       6px;
   --radius-lg:    12px;
 
@@ -111,12 +112,21 @@ code, pre, .mono { font-family: var(--font-mono); font-size: var(--text-sm); }
 ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
 
 /* ===== Layout ===== */
-.app-layout { display: flex; min-height: 100vh; }
+/* O padding-left reserva o espaco da sidebar (que e position:fixed e por isso
+   nao ocupa lugar no fluxo). Com ele aqui, a area de conteudo passa a ser tudo
+   que sobra a direita, e o .main-content pode se centralizar nela. */
+.app-layout { display: flex; min-height: 100vh; padding-left: var(--sidebar-w); }
 
 .main-content {
   flex: 1;
-  margin-left: var(--sidebar-w);
-  padding: 40px 48px;
+  /* Centraliza a coluna no espaco disponivel. Antes era margin-left: sidebar-w,
+     que grudava o conteudo na sidebar e deixava todo o resto vazio a direita em
+     monitores largos. */
+  margin-inline: auto;
+  /* O padding-bottom reserva a altura da barra fixa. Como o reset usa
+     box-sizing: border-box, ele entra dentro do min-height: 100vh — a tela
+     continua cabendo exatamente na viewport, sem scroll extra. */
+  padding: 40px 48px calc(var(--footer-h) + 24px);
   min-height: 100vh;
   max-width: 1100px;
   width: 100%;
@@ -241,7 +251,9 @@ img, svg, video { max-width: 100%; height: auto; display: block; }
 
 /* ===== Responsive ===== */
 @media (max-width: 900px) {
-  .main-content { margin-left: 0; padding: calc(var(--mobile-bar-h) + 20px) 20px 32px; max-width: 100%; }
+  /* No mobile a sidebar vira gaveta sobreposta, entao o espaco reservado sai. */
+  .app-layout { padding-left: 0; }
+  .main-content { margin-inline: 0; padding: calc(var(--mobile-bar-h) + 20px) 20px calc(var(--footer-h) + 16px); max-width: 100%; }
   h1 { font-size: 2rem; }
   h2 { font-size: 1.5rem; }
   h3 { font-size: 1.25rem; }
@@ -251,7 +263,7 @@ img, svg, video { max-width: 100%; height: auto; display: block; }
 }
 
 @media (max-width: 480px) {
-  .main-content { padding: calc(var(--mobile-bar-h) + 16px) 14px 24px; }
+  .main-content { padding: calc(var(--mobile-bar-h) + 16px) 14px calc(var(--footer-h) + 12px); }
   h1 { font-size: 1.75rem; }
   .card { padding: 16px; border-radius: var(--radius); }
   .btn { width: 100%; }

@@ -19,8 +19,11 @@
 
     <main class="main-content">
       <RouterView />
-      <AppFooter />
     </main>
+
+    <!-- Fora do .main-content de proposito: a barra e fixa na viewport, entao
+         nao pode herdar o padding nem o max-width da coluna de conteudo. -->
+    <AppFooter variant="compact" />
   </div>
 
   <!-- Telas publicas: nao tem sidebar, entao o wrapper cuida de empurrar

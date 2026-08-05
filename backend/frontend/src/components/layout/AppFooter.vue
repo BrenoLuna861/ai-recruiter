@@ -1,5 +1,26 @@
 <template>
-  <footer class="app-footer">
+  <!-- Variante compacta: barra fina fixa no rodape da viewport, usada nas telas
+       internas. Nao empurra conteudo nem cria scroll — o .main-content reserva
+       a altura dela via padding-bottom. -->
+  <footer v-if="variant === 'compact'" class="app-footer is-compact">
+    <span class="compact-copy">© {{ year }} AI Recruiter</span>
+    <nav class="compact-links">
+      <a :href="`mailto:${email}`">{{ email }}</a>
+      <a
+        v-for="s in activeSocials"
+        :key="s.label"
+        :href="s.url"
+        target="_blank"
+        rel="noopener noreferrer"
+        :aria-label="s.label"
+        :title="s.label"
+        class="compact-social"
+      ><span v-html="s.icon"></span></a>
+    </nav>
+    <span class="compact-credit">Desenvolvido por <span class="credit-name">Breno Luna</span></span>
+  </footer>
+
+  <footer v-else class="app-footer">
     <div class="footer-inner">
       <!-- Marca -->
       <div class="footer-brand">
@@ -58,6 +79,11 @@ import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import BrandLogo from '@/components/ui/BrandLogo.vue'
 
+withDefaults(defineProps<{
+  /** 'full' = tres colunas (telas publicas) | 'compact' = barra fixa (telas internas) */
+  variant?: 'full' | 'compact'
+}>(), { variant: 'full' })
+
 const auth = useAuthStore()
 const year = new Date().getFullYear()
 const email = 'valenexo05@gmail.com'
@@ -94,6 +120,43 @@ const activeSocials = computed(() => socials.filter(s => s.url))
   /* margin-top: auto faz o rodape colar no fim mesmo em paginas curtas,
      desde que o container pai seja flex column com min-height: 100vh. */
   margin-top: auto;
+}
+
+/* ---------- variante compacta: barra fixa ---------- */
+.app-footer.is-compact {
+  position: fixed;
+  bottom: 0;
+  left: var(--sidebar-w);
+  right: 0;
+  z-index: 60;
+  height: var(--footer-h);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  background: var(--bg-overlay);
+  backdrop-filter: blur(8px);
+}
+
+.compact-links { display: flex; align-items: center; gap: 14px; }
+.compact-links a { color: var(--text-muted); text-decoration: none; transition: color 0.15s var(--ease); }
+.compact-links a:hover { color: var(--accent); }
+.compact-social { display: inline-flex; align-items: center; }
+.compact-social :deep(svg) { width: 15px; height: 15px; }
+.compact-credit { white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .app-footer.is-compact { left: 0; padding: 0 14px; gap: 10px; }
+  .compact-credit { display: none; }
+}
+
+@media (max-width: 600px) {
+  .app-footer.is-compact { justify-content: center; }
+  .compact-copy { display: none; }
 }
 
 .footer-inner {

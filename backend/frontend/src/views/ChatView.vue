@@ -4,7 +4,6 @@
       <!-- Messages -->
       <div class="messages" ref="messagesEl">
         <div class="welcome" v-if="!messages.length">
-          <div class="welcome-icon">◈</div>
           <div class="welcome-title">Olá, eu sou a Aria</div>
           <div class="welcome-body">Sua assistente inteligente de recrutamento. Pergunte sobre seu currículo, vagas, entrevistas ou desenvolvimento de carreira.</div>
           <div class="suggestions">
@@ -13,16 +12,16 @@
         </div>
 
         <div v-for="(msg, i) in messages" :key="i" class="message" :class="msg.role">
-          <div class="msg-avatar">{{ msg.role === 'user' ? userInitial : '✦' }}</div>
           <div class="msg-bubble">
+            <div class="msg-author">{{ msg.role === 'user' ? 'Você' : 'Aria' }}</div>
             <div class="msg-text" v-html="formatMessage(msg.content)"></div>
             <div class="msg-time">{{ formatTime(msg.time) }}</div>
           </div>
         </div>
 
         <div v-if="loading" class="message assistant">
-          <div class="msg-avatar">✦</div>
           <div class="msg-bubble">
+            <div class="msg-author">Aria</div>
             <div class="typing">
               <span></span><span></span><span></span>
             </div>
@@ -64,8 +63,6 @@ const loading = ref(false)
 const sessionId = ref('')
 const messagesEl = ref<HTMLElement>()
 const inputEl = ref<HTMLTextAreaElement>()
-
-const userInitial = computed(() => auth.user?.name?.[0]?.toUpperCase() || 'U')
 
 const suggestions = computed(() => auth.isCandidate
   ? ['Como melhorar meu currículo?', 'Como me preparar para entrevistas?', 'Quais habilidades estão em alta?']
@@ -133,7 +130,10 @@ function formatTime(d: Date) {
      tamanho do conteudo, e a lista de mensagens deixa de rolar. */
   flex: 1;
   min-height: 0;
-  margin: -40px -48px 0;
+  /* A margem negativa sangra ate as bordas da coluna. Embaixo ela anula apenas
+     os 24px de respiro do padding, preservando os 44px reservados para a barra
+     fixa — assim o chat encosta no topo dela sem ficar por baixo. */
+  margin: -40px -48px -24px;
   padding: 0;
 }
 
@@ -160,7 +160,6 @@ function formatTime(d: Date) {
 }
 
 .welcome { text-align: center; margin: auto; max-width: 480px; }
-.welcome-icon { font-size: 3rem; color: var(--accent); margin-bottom: 20px; }
 .welcome-title { font-family: var(--font-display); font-size: var(--text-3xl); letter-spacing: -0.02em; margin-bottom: 10px; }
 .welcome-body { font-size: var(--text-base); color: var(--text-muted); line-height: 1.7; margin-bottom: 28px; }
 .suggestions { display: flex; flex-direction: column; gap: 10px; }
@@ -173,28 +172,33 @@ function formatTime(d: Date) {
 }
 .suggestion:hover { border-color: var(--accent); color: var(--text); }
 
-.message { display: flex; gap: 14px; align-items: flex-start; }
-.message.user { flex-direction: row-reverse; }
-
-.msg-avatar {
-  width: 36px; height: 36px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 600; flex-shrink: 0;
-}
-.user .msg-avatar { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); }
-.assistant .msg-avatar { background: var(--bg-3); color: var(--accent); border: 1px solid var(--border); }
+/*
+  Sem avatares: quem falou fica claro pelo rotulo de texto e pelo alinhamento.
+  Circulos com inicial e simbolo competiam com a leitura sem informar nada que
+  o rotulo ja nao diga.
+*/
+.message { display: flex; }
+.message.user { justify-content: flex-end; }
 
 .msg-bubble {
-  max-width: 65%;
+  max-width: 68%;
   background: var(--bg-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 14px 18px;
 }
-.user .msg-bubble { background: var(--accent-dim); border-color: rgba(110,231,183,.2); }
+.user .msg-bubble { background: var(--accent-dim); border-color: var(--border); }
 
-.msg-text { font-size: var(--text-base); line-height: 1.7; }
-.msg-time { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
+.msg-author {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+
+.msg-text { font-size: var(--text-base); line-height: 1.75; }
+.msg-time { font-size: 10px; color: var(--text-faint); margin-top: 8px; }
 
 .typing { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
 .typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); animation: bounce 1.2s infinite; }
@@ -233,7 +237,8 @@ function formatTime(d: Date) {
 
 @media (max-width: 900px) {
   /* Mesmo motivo da versao desktop: altura fixa somava com o rodape. */
-  .chat-page { margin: calc(-1 * var(--mobile-bar-h) - 20px) -20px 0; height: auto; }
+  /* -16px embaixo anula so o respiro do padding mobile, mantendo os 44px da barra. */
+  .chat-page { margin: calc(-1 * var(--mobile-bar-h) - 20px) -20px -16px; height: auto; }
   .messages { padding: 20px 16px; }
   .chat-input-area { padding: 12px 16px; }
   .msg-bubble { max-width: 85%; }
