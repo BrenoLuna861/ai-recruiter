@@ -39,13 +39,24 @@ public class AnthropicService {
             CURRÍCULO:
             %s
             
+            Para CADA uma das quatro dimensões, atribua a nota E explique em uma frase
+            objetiva o que no currículo levou a ela, citando evidência concreta do texto.
+            A justificativa é para o candidato ler, então seja específico: "não há métricas
+            quantificadas nas experiências" é útil, "poderia melhorar" não é.
+
+            NÃO atribua uma nota geral. Ela é calculada pelo sistema a partir destas quatro,
+            com pesos fixos, para que o resultado seja reproduzível e auditável.
+
             Forneça sua análise no seguinte formato JSON (responda APENAS o JSON, sem markdown):
             {
-              "overallScore": <0-100>,
               "skillsScore": <0-100>,
+              "skillsRationale": "<uma frase: por que essa nota, com evidência do currículo>",
               "experienceScore": <0-100>,
+              "experienceRationale": "<uma frase: por que essa nota, com evidência do currículo>",
               "formatScore": <0-100>,
+              "formatRationale": "<uma frase: por que essa nota, com evidência do currículo>",
               "atsScore": <0-100>,
+              "atsRationale": "<uma frase: por que essa nota, com evidência do currículo>",
               "summary": "<resumo executivo da análise>",
               "strengths": ["<ponto forte 1>", "<ponto forte 2>", "<ponto forte 3>"],
               "weaknesses": ["<ponto fraco 1>", "<ponto fraco 2>"],

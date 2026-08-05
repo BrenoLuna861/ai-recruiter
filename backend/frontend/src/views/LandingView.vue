@@ -56,7 +56,7 @@
       <div class="eyebrow">PLATAFORMA INTELIGENTE DE RECRUTAMENTO</div>
       <h1>
         Recrutamento <span class="accent">orientado por IA</span><br />
-        para decisões mais assertivas.
+        para decisões mais precisas.
       </h1>
       <p class="subtitle">
         O AI Recruiter analisa currículos automaticamente, cruza perfis com
@@ -103,7 +103,7 @@
       </div>
       <div class="persona">
         <div class="persona-tag">RECRUTADORES</div>
-        <h2>Triagem mais rápida, contratações mais assertivas</h2>
+        <h2>Triagem mais rápida, contratações mais certeiras</h2>
         <p>Publique vagas e veja rankings automáticos de candidatos com base em aderência real às suas necessidades.</p>
         <RouterLink to="/register" class="btn btn-ghost">Sou recrutador →</RouterLink>
       </div>

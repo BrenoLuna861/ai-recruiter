@@ -126,8 +126,14 @@ function formatTime(d: Date) {
 .chat-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 80px);
-  margin: -40px -48px;
+  /* Antes era height: calc(100vh - 80px), que assumia ser o unico elemento da
+     area de conteudo. Com o rodape abaixo, a soma ultrapassava a viewport e o
+     chat ficava cortado. flex:1 faz ele ocupar exatamente o espaco que sobra.
+     O min-height:0 e obrigatorio: sem ele um flex item nao encolhe abaixo do
+     tamanho do conteudo, e a lista de mensagens deixa de rolar. */
+  flex: 1;
+  min-height: 0;
+  margin: -40px -48px 0;
   padding: 0;
 }
 
@@ -226,7 +232,8 @@ function formatTime(d: Date) {
 .chat-hint { font-size: 10px; color: var(--text-faint); text-align: center; padding: 6px 0 10px; letter-spacing: 0.05em; background: var(--bg-2); }
 
 @media (max-width: 900px) {
-  .chat-page { margin: calc(-1 * var(--mobile-bar-h) - 20px) -20px -32px; height: calc(100vh - var(--mobile-bar-h)); }
+  /* Mesmo motivo da versao desktop: altura fixa somava com o rodape. */
+  .chat-page { margin: calc(-1 * var(--mobile-bar-h) - 20px) -20px 0; height: auto; }
   .messages { padding: 20px 16px; }
   .chat-input-area { padding: 12px 16px; }
   .msg-bubble { max-width: 85%; }

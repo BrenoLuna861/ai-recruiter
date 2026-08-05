@@ -133,6 +133,21 @@ code, pre, .mono { font-family: var(--font-mono); font-size: var(--text-sm); }
   min-height: 100vh;
 }
 
+/*
+  As telas de acesso (login, cadastro, recuperar/redefinir senha) declaram
+  min-height: 100vh para centralizar o card verticalmente. Dentro do
+  .public-layout isso sobra: a tela ocupa a altura toda e joga o rodape para
+  fora da dobra, criando um scroll numa pagina que cabe inteira.
+  Aqui ela passa a ocupar apenas o espaco que sobra acima do rodape — o card
+  continua centralizado, agora na area correta.
+  O !important e necessario porque a regra original esta em <style scoped>,
+  que tem a mesma especificidade e e injetada depois deste arquivo.
+*/
+.public-layout > .auth-page {
+  flex: 1;
+  min-height: 0 !important;
+}
+
 /* ===== Components ===== */
 .page-header { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
 .page-header h1 { margin-bottom: 6px; }

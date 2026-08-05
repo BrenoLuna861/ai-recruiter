@@ -127,7 +127,10 @@ function scoreClass(score: number) {
 </script>
 
 <style scoped>
-.dashboard { min-height: calc(100vh - 80px); }
+/* Sem min-height fixo: o rodape ja fica no fim pela coluna flex do
+   .main-content. Manter calc(100vh - 80px) aqui somava com a altura do rodape
+   e criava um scroll desnecessario em telas curtas. */
+.dashboard { flex: 1; }
 
 /* Stats */
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 40px; }

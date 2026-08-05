@@ -78,11 +78,19 @@ public class ResumeService {
             }
             Map<?, ?> data = objectMapper.readValue(cleanJson, Map.class);
 
-            resume.setOverallScore(toInt(data.get("overallScore")));
             resume.setSkillsScore(toInt(data.get("skillsScore")));
             resume.setExperienceScore(toInt(data.get("experienceScore")));
             resume.setFormatScore(toInt(data.get("formatScore")));
             resume.setAtsScore(toInt(data.get("atsScore")));
+
+            // A nota geral e CALCULADA, nao pedida a IA. Antes vinha como um numero
+            // livre do modelo, sem relacao com as outras quatro — nao dava para
+            // explicar ao candidato como 87 saia de 92/88/80/83, e o mesmo curriculo
+            // podia receber notas diferentes a cada execucao.
+            resume.setOverallScore(calcularNotaGeral(resume));
+
+            // A analise qualitativa vai para o MySQL junto com as notas.
+            resume.setAnalysisJson(cleanJson);
             resume.setStatus(Resume.Status.DONE);
 
             try {
@@ -132,11 +140,19 @@ public class ResumeService {
         Resume resume = resumeRepository.findByIdAndUserId(id, user.getId())
             .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
 
+        // O Mongo guarda a analise detalhada, mas e opcional: se estiver fora do ar,
+        // esta chamada lancava excecao e a requisicao inteira virava 500 — o mesmo 500
+        // que aparecia no console ao abrir um curriculo. Agora a falha e absorvida e
+        // a tela se vira com o analysisJson do MySQL.
         String fullAnalysis = null;
         if (resume.getAnalysisMongoId() != null) {
-            fullAnalysis = analysisRepository.findById(resume.getAnalysisMongoId())
-                .map(ResumeAnalysis::getFullAnalysis)
-                .orElse(null);
+            try {
+                fullAnalysis = analysisRepository.findById(resume.getAnalysisMongoId())
+                    .map(ResumeAnalysis::getFullAnalysis)
+                    .orElse(null);
+            } catch (Exception e) {
+                log.warn("MongoDB indisponivel ao buscar analise do curriculo {}: {}", id, e.getMessage());
+            }
         }
         return toResponse(resume, fullAnalysis);
     }
@@ -167,6 +183,44 @@ public class ResumeService {
         }
     }
 
+    // ------------------------------------------------------------------
+    // Nota geral
+    // ------------------------------------------------------------------
+
+    /** Pesos da nota geral. Somam 1.0 — se mexer aqui, atualize tambem o texto da tela. */
+    public static final int PESO_SKILLS      = 35;
+    public static final int PESO_EXPERIENCIA = 30;
+    public static final int PESO_ATS         = 20;
+    public static final int PESO_FORMATO     = 15;
+
+    /**
+     * Media ponderada das quatro dimensoes.
+     *
+     * Skills e experiencia pesam mais porque decidem se a pessoa e adequada a vaga;
+     * ATS e formato importam para o curriculo ser lido, mas nao substituem conteudo.
+     * Sendo deterministico, o mesmo curriculo produz sempre a mesma nota, e o
+     * calculo pode ser conferido a mao pelo candidato.
+     */
+    private Integer calcularNotaGeral(Resume r) {
+        Integer skills = r.getSkillsScore();
+        Integer exp    = r.getExperienceScore();
+        Integer ats    = r.getAtsScore();
+        Integer fmt    = r.getFormatScore();
+
+        // Se a IA deixou alguma dimensao de fora, nao ha nota geral confiavel.
+        if (skills == null || exp == null || ats == null || fmt == null) {
+            log.warn("Nota geral nao calculada: alguma dimensao veio nula (resume {})", r.getId());
+            return null;
+        }
+
+        int total = skills * PESO_SKILLS
+                  + exp    * PESO_EXPERIENCIA
+                  + ats    * PESO_ATS
+                  + fmt    * PESO_FORMATO;
+
+        return Math.round(total / 100f);
+    }
+
     private ResumeResponse toResponse(Resume r, String analysis) {
         return ResumeResponse.builder()
             .id(r.getId())
@@ -181,6 +235,13 @@ public class ResumeService {
             .createdAt(r.getCreatedAt())
             .updatedAt(r.getUpdatedAt())
             .analysis(analysis)
+            // Vem do MySQL, entao a tela nao depende mais do MongoDB estar de pe.
+            .analysisJson(r.getAnalysisJson())
+            .scoreWeights(Map.of(
+                "skills", PESO_SKILLS,
+                "experience", PESO_EXPERIENCIA,
+                "ats", PESO_ATS,
+                "format", PESO_FORMATO))
             .content(r.getContent())
             .build();
     }

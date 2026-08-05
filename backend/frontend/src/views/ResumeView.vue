@@ -36,9 +36,23 @@
     <div v-if="error" class="error-box" style="margin-bottom:16px">{{ error }}</div>
 
     <button class="btn btn-primary analyze-btn" @click="analyze" :disabled="loading || (!selectedFile && !resumeText.trim())">
-      <span v-if="loading" class="spinner" style="width:16px;height:16px;border-width:2px;border-color:rgba(0,0,0,0.2);border-top-color:#0a0a0b"></span>
+      <span v-if="loading" class="spinner" style="width:16px;height:16px;border-width:2px;border-color:rgba(0,0,0,0.2);border-top-color:var(--on-accent)"></span>
       <span>{{ loading ? 'Analisando com IA...' : '⚡ Analisar com Agente IA' }}</span>
     </button>
+
+    <!-- Painel de progresso: a analise leva de 20 a 60 segundos e antes nao havia
+         nenhum sinal de vida nesse intervalo, o que passava impressao de travamento. -->
+    <div v-if="loading" class="progress-panel">
+      <div class="progress-track"><div class="progress-fill"></div></div>
+      <ul class="progress-steps">
+        <li v-for="(etapa, i) in etapas" :key="i" :class="{ done: i < etapaAtual, current: i === etapaAtual }">
+          <span class="step-dot"></span>{{ etapa }}
+        </li>
+      </ul>
+      <p class="progress-note">
+        Tempo decorrido: {{ segundos }}s · costuma levar entre 20 e 60 segundos.
+      </p>
+    </div>
 
     <div v-if="result" class="results">
       <hr class="divider" style="margin:32px 0"/>
@@ -48,14 +62,34 @@
       </div>
 
       <div class="score-grid">
-        <div class="score-card" v-for="(s, label) in scores" :key="label">
-          <div class="sc-label">{{ label }}</div>
-          <div class="sc-bar">
-            <div class="sc-fill" :style="{ width: s + '%' }" :class="scoreClass(s)"></div>
+        <div class="score-card" v-for="d in dimensoes" :key="d.chave">
+          <div class="sc-head">
+            <span class="sc-label">{{ d.rotulo }}</span>
+            <span class="sc-weight">peso {{ d.peso }}%</span>
           </div>
-          <div class="sc-value mono" :class="scoreClass(s)">{{ s }}</div>
+          <div class="sc-bar">
+            <div class="sc-fill" :style="{ width: d.nota + '%' }" :class="scoreClass(d.nota)"></div>
+          </div>
+          <div class="sc-value mono" :class="scoreClass(d.nota)">{{ d.nota }}</div>
+          <p v-if="d.justificativa" class="sc-rationale">{{ d.justificativa }}</p>
         </div>
       </div>
+
+      <!-- Como a nota geral foi obtida. Antes o numero vinha da IA sem relacao com
+           as quatro dimensoes e nao havia como explicar de onde saia. -->
+      <details class="formula-box">
+        <summary>Como chegamos em {{ result.overallScore }}/100</summary>
+        <p class="formula-intro">
+          A nota geral é a média ponderada das quatro dimensões. Os pesos são fixos,
+          então o mesmo currículo sempre recebe a mesma nota.
+        </p>
+        <div class="formula-calc mono">
+          <div v-for="d in dimensoes" :key="d.chave">
+            {{ d.rotulo }}: {{ d.nota }} × {{ d.peso }}% = {{ (d.nota * d.peso / 100).toFixed(1) }}
+          </div>
+          <div class="formula-total">Total = {{ result.overallScore }}</div>
+        </div>
+      </details>
 
       <div class="suggestions-section">
         <button class="btn btn-secondary suggestions-btn" @click="getSuggestions" :disabled="loadingSuggestions">
@@ -142,12 +176,52 @@ const resumes = ref<any[]>([])
 const suggestions = ref<any>(null)
 const copied = ref(false)
 
-const scores = computed(() => result.value ? {
-  'Skills': result.value.skillsScore,
-  'Experiência': result.value.experienceScore,
-  'Formato': result.value.formatScore,
-  'ATS': result.value.atsScore,
-} : {})
+// Analise qualitativa: vem do MySQL (analysisJson), entao nao depende do MongoDB.
+const analise = computed<any>(() => {
+  if (!result.value?.analysisJson) return null
+  try { return JSON.parse(result.value.analysisJson) } catch { return null }
+})
+
+// Uma linha por dimensao: nota, peso usado no calculo e a justificativa da IA.
+const dimensoes = computed(() => {
+  if (!result.value) return []
+  const pesos = result.value.scoreWeights || { skills: 35, experience: 30, ats: 20, format: 15 }
+  const a = analise.value || {}
+  return [
+    { chave: 'skills',     rotulo: 'Skills',     nota: result.value.skillsScore,     peso: pesos.skills,     justificativa: a.skillsRationale },
+    { chave: 'experience', rotulo: 'Experiência', nota: result.value.experienceScore, peso: pesos.experience, justificativa: a.experienceRationale },
+    { chave: 'ats',        rotulo: 'ATS',        nota: result.value.atsScore,        peso: pesos.ats,        justificativa: a.atsRationale },
+    { chave: 'format',     rotulo: 'Formato',    nota: result.value.formatScore,     peso: pesos.format,     justificativa: a.formatRationale }
+  ]
+})
+
+// ----- Progresso da analise -----
+const etapas = [
+  'Extraindo o texto do arquivo',
+  'Enviando para o agente de IA',
+  'Avaliando skills e experiência',
+  'Calculando a nota final'
+]
+const etapaAtual = ref(0)
+const segundos = ref(0)
+let cronometro: number | undefined
+
+function iniciarProgresso() {
+  segundos.value = 0
+  etapaAtual.value = 0
+  cronometro = window.setInterval(() => {
+    segundos.value++
+    // As etapas sao estimadas pelo tempo: a API nao reporta progresso real,
+    // e prometer precisao que nao temos seria pior do que uma estimativa honesta.
+    if (segundos.value > 3 && etapaAtual.value < 1) etapaAtual.value = 1
+    if (segundos.value > 10 && etapaAtual.value < 2) etapaAtual.value = 2
+    if (segundos.value > 25 && etapaAtual.value < 3) etapaAtual.value = 3
+  }, 1000)
+}
+
+function pararProgresso() {
+  if (cronometro) { clearInterval(cronometro); cronometro = undefined }
+}
 
 onMounted(async () => {
   try { resumes.value = (await resumeApi.list()).data } catch {}
@@ -169,6 +243,7 @@ async function analyze() {
   loading.value = true
   result.value = null
   suggestions.value = null
+  iniciarProgresso()
   try {
     let res
     if (selectedFile.value) {
@@ -185,9 +260,18 @@ async function analyze() {
       resumes.value = (await resumeApi.list()).data
     }
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Erro ao analisar. Verifique o arquivo e tente novamente.'
+    // Mensagens distintas por causa: antes qualquer falha virava o mesmo texto,
+    // e um timeout de 2 minutos ficava indistinguivel de um arquivo invalido.
+    if (e.code === 'ECONNABORTED') {
+      error.value = 'A análise passou de 2 minutos e foi interrompida. Currículos muito longos podem estourar esse limite — tente um arquivo menor.'
+    } else if (e.response?.status === 500) {
+      error.value = 'O servidor falhou ao processar a análise. Tente novamente em instantes.'
+    } else {
+      error.value = e.response?.data?.message || 'Erro ao analisar. Verifique o arquivo e tente novamente.'
+    }
   } finally {
     loading.value = false
+    pararProgresso()
   }
 }
 
@@ -306,6 +390,30 @@ function formatText(t: string) { return t.replace(/\n/g, '<br>') }
 .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
 .score-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
 .sc-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+/* ----- progresso da analise ----- */
+.progress-panel { margin-top: 16px; padding: 18px 20px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); }
+.progress-track { height: 3px; background: var(--border-2); border-radius: 2px; overflow: hidden; margin-bottom: 16px; }
+.progress-fill { height: 100%; width: 40%; background: var(--accent); border-radius: 2px; animation: slide 1.6s ease-in-out infinite; }
+@keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+.progress-steps { list-style: none; padding: 0; margin: 0 0 14px; display: flex; flex-direction: column; gap: 8px; }
+.progress-steps li { display: flex; align-items: center; gap: 10px; font-size: var(--text-xs); color: var(--text-faint); transition: color 0.3s var(--ease); }
+.progress-steps li.done { color: var(--text-muted); }
+.progress-steps li.current { color: var(--accent); }
+.step-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.progress-note { font-size: 11px; color: var(--text-faint); margin: 0; }
+
+/* ----- justificativa e formula ----- */
+.sc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.sc-weight { font-size: 10px; color: var(--text-faint); letter-spacing: 0.04em; }
+.sc-rationale { font-size: 11px; line-height: 1.6; color: var(--text-muted); margin: 8px 0 0; }
+
+.formula-box { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); padding: 14px 18px; }
+.formula-box summary { cursor: pointer; font-size: var(--text-sm); color: var(--text-muted); }
+.formula-box summary:hover { color: var(--accent); }
+.formula-intro { font-size: var(--text-xs); color: var(--text-muted); line-height: 1.7; margin: 12px 0; }
+.formula-calc { font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
+.formula-total { color: var(--accent); border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px; }
+
 .sc-bar { height: 4px; background: var(--border-2); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
 .sc-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
 .sc-fill.high { background: var(--accent); }

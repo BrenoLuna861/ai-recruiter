@@ -56,6 +56,19 @@ public class Resume {
     @Column(name = "analysis_mongo_id", length = 24)
     private String analysisMongoId;
 
+    /**
+     * Analise qualitativa completa (pontos fortes, fracos, sugestoes, justificativas
+     * das notas) em JSON.
+     *
+     * Antes isso vivia SO no MongoDB. Quando o Mongo ficava indisponivel, o curriculo
+     * era salvo com as notas e sem os textos, e a tela exibia "Nao foi possivel
+     * carregar os pontos fortes" sem nenhum erro visivel. Guardar aqui torna o Mongo
+     * opcional: ele continua util para consulta analitica, mas a tela nao depende dele.
+     */
+    @Lob
+    @Column(name = "analysis_json", columnDefinition = "LONGTEXT")
+    private String analysisJson;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Status status = Status.PENDING;
