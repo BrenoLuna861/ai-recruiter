@@ -2,7 +2,7 @@
   <aside class="sidebar" :class="{ 'is-open': open }">
     <!-- Brand -->
     <div class="sidebar-brand">
-      <img src="@/assets/logo.png" alt="AI Recruiter" style="height: 28px; object-fit: contain;" />
+      <BrandLogo variant="full" style="height: 30px;" />
       <div class="brand-role">{{ auth.user?.role }}</div>
       <button class="close-btn" @click="$emit('close')" aria-label="Fechar menu">×</button>
     </div>
@@ -78,6 +78,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { resumeApi } from '@/services/api'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import BrandLogo from '@/components/ui/BrandLogo.vue'
 
 defineProps<{ open?: boolean }>()
 defineEmits<{ (e: 'close'): void }>()

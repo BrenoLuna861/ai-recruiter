@@ -57,7 +57,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+// IMPORTANTE: usar a instancia de '@/services/api', nunca o axios cru.
+// E ela que anexa o header Authorization com o JWT — sem isso a requisicao
+// chega sem autenticacao e o Spring responde 403.
+import { adminApi } from '@/services/api'
 
 const users = ref<any[]>([])
 const loading = ref(true)
@@ -66,10 +69,11 @@ const messageType = ref('success')
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/api/admin/users')
+    const res = await adminApi.listUsers()
     users.value = res.data
-  } catch {
-    showMessage('Erro ao carregar usuários', 'error')
+  } catch (e: any) {
+    console.error('Falha ao carregar usuarios:', e.response?.status, e.response?.data)
+    showMessage(errorText(e, 'Erro ao carregar usuários'), 'error')
   } finally {
     loading.value = false
   }
@@ -77,21 +81,27 @@ onMounted(async () => {
 
 async function updateRole(id: number, role: string) {
   try {
-    await axios.patch(`/api/admin/users/${id}/role`, { role })
+    await adminApi.updateRole(id, role)
     showMessage('Role atualizado com sucesso', 'success')
-  } catch {
-    showMessage('Erro ao atualizar role', 'error')
+  } catch (e: any) {
+    showMessage(errorText(e, 'Erro ao atualizar role'), 'error')
   }
 }
 
 async function toggleStatus(user: any) {
   try {
-    await axios.patch(`/api/admin/users/${user.id}/status`, { active: !user.active })
+    await adminApi.updateStatus(user.id, !user.active)
     user.active = !user.active
     showMessage('Status atualizado', 'success')
-  } catch {
-    showMessage('Erro ao atualizar status', 'error')
+  } catch (e: any) {
+    showMessage(errorText(e, 'Erro ao atualizar status'), 'error')
   }
+}
+
+/** Distingue "sem permissao" de falha generica — antes tudo virava a mesma mensagem. */
+function errorText(e: any, fallback: string) {
+  if (e.response?.status === 403) return 'Acesso negado. Esta area e restrita a administradores.'
+  return e.response?.data?.message || fallback
 }
 
 function showMessage(msg: string, type: string) {

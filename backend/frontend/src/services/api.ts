@@ -68,6 +68,15 @@ export const chatApi = {
     api.get(`/chat/history/${sessionId}`)
 }
 
+// Admin
+export const adminApi = {
+  listUsers: () => api.get('/admin/users'),
+  updateRole: (id: number, role: string) =>
+    api.patch(`/admin/users/${id}/role`, { role }),
+  updateStatus: (id: number, active: boolean) =>
+    api.patch(`/admin/users/${id}/status`, { active })
+}
+
 // Jobs
 export const jobApi = {
   list: () => api.get('/jobs'),

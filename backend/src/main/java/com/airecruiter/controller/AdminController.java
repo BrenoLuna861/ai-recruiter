@@ -4,6 +4,7 @@ import com.airecruiter.entity.User;
 import com.airecruiter.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -11,9 +12,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Area administrativa.
+ *
+ * O @PreAuthorize no nivel da classe vale para TODOS os metodos. Sem ele, o
+ * SecurityConfig exigia apenas `.anyRequest().authenticated()` — ou seja,
+ * qualquer usuario logado, inclusive um CANDIDATE, podia listar todos os
+ * usuarios e alterar o proprio papel para ADMIN.
+ */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final UserRepository userRepository;

@@ -8,7 +8,7 @@
         <span></span><span></span><span></span>
       </button>
       <div class="mobile-brand">
-        <img src="@/assets/logo.png" alt="AI Recruiter" style="height: 24px; object-fit: contain;" />
+        <BrandLogo variant="full" style="height: 26px;" />
       </div>
     </header>
 
@@ -19,9 +19,16 @@
 
     <main class="main-content">
       <RouterView />
+      <AppFooter />
     </main>
   </div>
-  <RouterView v-else />
+
+  <!-- Telas publicas: nao tem sidebar, entao o wrapper cuida de empurrar
+       o rodape para o fim mesmo quando a pagina e curta. -->
+  <div v-else class="public-layout">
+    <RouterView />
+    <AppFooter />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -29,6 +36,8 @@ import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
+import BrandLogo from '@/components/ui/BrandLogo.vue'
 
 const auth = useAuthStore()
 const route = useRoute()

@@ -3,8 +3,7 @@
     <!-- Top bar -->
     <header class="topbar">
       <div class="brand">
-        <span class="brand-mark">✦</span>
-        <span class="brand-text">AI Recruiter</span>
+        <BrandLogo variant="full" style="height: 32px;" />
       </div>
       <nav class="topbar-nav">
         <ThemeToggle variant="icon" />
@@ -119,21 +118,12 @@
       </div>
     </section>
 
-    <footer class="footer">
-      <div class="footer-row">
-        <span>© {{ new Date().getFullYear() }} AI Recruiter</span>
-        <span class="footer-sep">·</span>
-        <span>Plataforma Inteligente de Recrutamento</span>
-      </div>
-      <div class="footer-row footer-credit">
-        Desenvolvido por <span class="credit-name">Breno Luna</span>
-      </div>
-    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import BrandLogo from '@/components/ui/BrandLogo.vue'
 </script>
 
 <style scoped>
@@ -221,11 +211,6 @@ import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 .cta-final { max-width: 720px; margin: 0 auto; text-align: center; padding: 64px 24px 96px; }
 .cta-final h2 { font-size: var(--text-3xl); margin-bottom: 28px; }
 
-.footer { border-top: 1px solid var(--border); padding: 24px 40px; text-align: center; font-size: var(--text-xs); color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.footer-row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
-.footer-sep { opacity: 0.5; }
-.footer-credit { font-size: 11px; letter-spacing: 0.05em; color: var(--text-faint); margin-top: 2px; }
-.credit-name { color: var(--accent); font-weight: 600; letter-spacing: 0.02em; }
 
 @media (max-width: 600px) {
   .topbar { padding: 16px 20px; }

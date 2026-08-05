@@ -10,8 +10,7 @@
     <div class="auth-card">
       <div class="auth-brand">
         <RouterLink to="/" class="brand-link">
-          <span class="brand-mark">✦</span>
-          <span class="brand-text">AI Recruiter</span>
+          <BrandLogo variant="full" style="height: 34px;" />
         </RouterLink>
       </div>
       <h1>Criar conta</h1>
@@ -69,6 +68,7 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import BrandLogo from '@/components/ui/BrandLogo.vue'
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton.vue'
 
 const router = useRouter()
