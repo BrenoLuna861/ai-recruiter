@@ -22,7 +22,7 @@
       <div class="card stat-card">
         <div class="stat-icon">◉</div>
         <div class="stat-label">Vagas abertas</div>
-        <div class="stat-value">{{ jobs.length }}</div>
+        <div class="stat-value">{{ totalVagas }}</div>
         <div class="stat-sub">disponíveis agora</div>
       </div>
     </div>
@@ -60,7 +60,7 @@
         <span class="action-icon">◉</span>
         <div class="action-body">
           <span class="action-label">Explorar Vagas</span>
-          <span class="action-sub">{{ jobs.length }} oportunidades</span>
+          <span class="action-sub">{{ totalVagas }} oportunidades</span>
         </div>
         <span class="action-arrow">→</span>
       </RouterLink>
@@ -100,6 +100,12 @@ const resumes = ref<any[]>([])
 const jobs = ref<any[]>([])
 const myJobs = ref<any[]>([])
 
+// Vagas externas (Adzuna/Remotive). O contador precisa somar as duas origens,
+// senao a tela diz "0 oportunidades" enquanto a tela de Vagas mostra dezenas.
+const vagasExternas = ref(0)
+
+const totalVagas = computed(() => jobs.value.length + vagasExternas.value)
+
 const bestScore = computed(() => {
   if (!resumes.value.length) return null
   return Math.max(...resumes.value.map(r => r.overallScore || 0))
@@ -107,6 +113,12 @@ const bestScore = computed(() => {
 
 onMounted(async () => {
   try { jobs.value = (await jobApi.list()).data } catch {}
+  try {
+    vagasExternas.value = (await jobApi.external({})).data?.total || 0
+  } catch {
+    // Falha na fonte externa nao pode derrubar o dashboard: o contador
+    // simplesmente reflete apenas as vagas internas.
+  }
   if (auth.isCandidate) {
     try { resumes.value = (await resumeApi.list()).data } catch {}
   }
