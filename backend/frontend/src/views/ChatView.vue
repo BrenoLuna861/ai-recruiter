@@ -107,11 +107,64 @@ async function scrollBottom() {
   if (messagesEl.value) messagesEl.value.scrollTop = messagesEl.value.scrollHeight
 }
 
+/**
+ * Converte a resposta do modelo em HTML seguro para exibicao.
+ *
+ * A ORDEM IMPORTA: escapamos o HTML ANTES de qualquer coisa. O resultado vai
+ * para um v-html, entao sem esse passo bastaria o modelo devolver uma tag para
+ * ela ser executada no navegador de quem esta conversando.
+ *
+ * O prompt ja pede prosa sem titulos, tabelas nem emojis, mas tratamos aqui
+ * tambem: o modelo pode escapar da instrucao, e as conversas antigas ficaram
+ * salvas no formato anterior.
+ */
 function formatMessage(text: string) {
-  return text
+  const escapado = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  const semRuido = escapado
+    // Emojis e pictogramas
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    // Linhas divisorias
+    .replace(/^\s*[-*_]{3,}\s*$/gm, '')
+    // Titulos markdown viram enfase, sem virar secao de documento
+    .replace(/^#{1,6}\s*(.+)$/gm, '<strong>$1</strong>')
+    .trim()
+
+  const linhas = semRuido.split('\n')
+  const partes: string[] = []
+  let lista: string[] = []
+
+  const fecharLista = () => {
+    if (lista.length) {
+      partes.push(`<ul>${lista.map(i => `<li>${i}</li>`).join('')}</ul>`)
+      lista = []
+    }
+  }
+
+  for (const linha of linhas) {
+    const item = linha.match(/^\s*(?:[-*•]|\d+\.)\s+(.*)$/)
+    if (item) {
+      lista.push(inline(item[1]))
+    } else if (linha.trim() === '') {
+      fecharLista()
+    } else {
+      fecharLista()
+      partes.push(`<p>${inline(linha)}</p>`)
+    }
+  }
+  fecharLista()
+
+  return partes.join('')
+}
+
+/** Negrito e italico. Roda depois do escape, entao nao reintroduz risco. */
+function inline(s: string) {
+  return s
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\n/g, '<br>')
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
 }
 
 function formatTime(d: Date) {
@@ -198,6 +251,12 @@ function formatTime(d: Date) {
 }
 
 .msg-text { font-size: var(--text-base); line-height: 1.75; }
+.msg-text :deep(p) { margin: 0 0 10px; }
+.msg-text :deep(p:last-child) { margin-bottom: 0; }
+.msg-text :deep(ul) { margin: 0 0 10px; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.msg-text :deep(ul:last-child) { margin-bottom: 0; }
+.msg-text :deep(li)::marker { color: var(--text-faint); }
+.msg-text :deep(strong) { font-weight: 600; }
 .msg-time { font-size: 10px; color: var(--text-faint); margin-top: 8px; }
 
 .typing { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
