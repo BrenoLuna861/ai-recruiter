@@ -252,8 +252,17 @@ const activeSocials = computed(() => socials.filter(s => s.url))
 .social-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ----- barra inferior ----- */
+/*
+  A linha vem de um ::before, e nao de border-top.
+
+  A borda acompanharia a caixa inteira do elemento, padding incluso, ficando
+  32px mais larga de cada lado que o texto que ela separa — desalinhada com a
+  logo acima e com o copyright abaixo. O pseudo-elemento e recuado exatamente
+  pelo mesmo padding, entao a linha comeca e termina onde o conteudo comeca e
+  termina.
+*/
 .footer-bottom {
-  border-top: 1px solid var(--border);
+  position: relative;
   padding: 16px 32px;
   display: flex;
   justify-content: space-between;
@@ -265,6 +274,16 @@ const activeSocials = computed(() => socials.filter(s => s.url))
   font-size: var(--text-xs);
   color: var(--text-faint);
 }
+.footer-bottom::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 32px;
+  right: 32px;
+  height: 1px;
+  background: var(--border);
+}
+
 .footer-credit { letter-spacing: 0.04em; }
 .credit-name { color: var(--text-muted); }
 
@@ -279,5 +298,7 @@ const activeSocials = computed(() => socials.filter(s => s.url))
     text-align: center;
     padding: 16px 24px;
   }
+  /* Acompanha o padding menor do mobile, para a linha continuar alinhada. */
+  .footer-bottom::before { left: 24px; right: 24px; }
 }
 </style>
