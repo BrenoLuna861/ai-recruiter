@@ -1,7 +1,7 @@
 <template>
   <div class="landing">
     <!-- Top bar -->
-    <header class="topbar">
+    <header class="topbar" :class="{ rolou }">
       <div class="brand">
         <BrandLogo variant="full" style="height: 32px;" />
       </div>
@@ -74,6 +74,10 @@
       </div>
     </section>
 
+    <!-- Prova concreta antes das promessas: o visitante ve o resultado real
+         antes de decidir criar conta. -->
+    <SampleAnalysis />
+
     <!-- Features -->
     <section class="features">
       <div class="feature-card">
@@ -122,8 +126,25 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import BrandLogo from '@/components/ui/BrandLogo.vue'
+import SampleAnalysis from '@/components/ui/SampleAnalysis.vue'
+
+const rolou = ref(false)
+
+// passive: true — o listener nao chama preventDefault, e avisar isso ao
+// navegador evita que ele segure a rolagem esperando para descobrir.
+function aoRolar() {
+  rolou.value = window.scrollY > 8
+}
+
+onMounted(() => {
+  aoRolar()
+  window.addEventListener('scroll', aoRolar, { passive: true })
+})
+
+onUnmounted(() => window.removeEventListener('scroll', aoRolar))
 </script>
 
 <style scoped>
@@ -141,12 +162,27 @@ import BrandLogo from '@/components/ui/BrandLogo.vue'
   align-items: center;
   justify-content: space-between;
   padding: 20px 40px;
-  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   background: var(--bg-overlay);
   backdrop-filter: blur(8px);
   z-index: 50;
+  /* Borda transparente reservada desde o inicio: se ela nascesse com a rolagem,
+     a altura do cabecalho mudaria 1px e a pagina daria um solavanco. */
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+/*
+  A linha so aparece depois que a pagina rola.
+
+  No topo ela nao separava nada: o fundo do cabecalho e o da pagina sao
+  praticamente a mesma cor, entao a borda lia como um risco solto atravessando
+  a tela em vez de limite do cabecalho. Rolando, o conteudo passa por baixo e
+  ai a linha ganha funcao — e so entao ela aparece.
+*/
+.topbar.rolou {
+  border-bottom-color: var(--border);
 }
 .brand { display: flex; align-items: center; gap: 8px; }
 .brand-mark { color: var(--accent); font-size: 18px; }
