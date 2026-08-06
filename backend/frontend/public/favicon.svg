@@ -1,4 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#0a0a0b"/>
-  <text x="16" y="22" font-size="18" text-anchor="middle" fill="#6ee7b7" font-family="serif">✦</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!--
+    Favicon: versao simplificada da marca.
+
+    As trilhas de circuito do logotipo completo foram removidas de proposito —
+    com 2.4px de traco elas viram sujeira ilegivel a 16x16, que e o tamanho real
+    de uma aba de navegador. Sobra o essencial e reconhecivel: a lupa com o "Ai"
+    dentro, com tracos engrossados para aguentar a reducao.
+
+    A cor e um verde medio que funciona tanto em abas claras quanto escuras.
+  -->
+  <g fill="none" stroke="#10b981" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="27" cy="27" r="19" stroke-width="6"/>
+    <path d="M41 41 L56 56" stroke-width="9"/>
+    <path d="M18 36 L27 17 L36 36" stroke-width="5.5"/>
+    <path d="M21.6 29 H32.4" stroke-width="5.5"/>
+  </g>
 </svg>
