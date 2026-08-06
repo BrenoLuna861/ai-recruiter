@@ -2,6 +2,7 @@ package com.airecruiter.controller;
 
 import com.airecruiter.dto.response.ExternalJobResponse;
 import com.airecruiter.service.ExternalJobService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,9 +29,10 @@ public class ExternalJobController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String local,
             @RequestParam(defaultValue = "false") boolean remotas,
-            @RequestParam(defaultValue = "1") int pagina) {
+            @RequestParam(defaultValue = "1") int pagina,
+            HttpServletRequest http) {
 
-        List<ExternalJobResponse> vagas = externalJobService.buscar(q, local, remotas, pagina);
+        List<ExternalJobResponse> vagas = externalJobService.buscar(q, local, remotas, pagina, clientIp(http));
 
         return ResponseEntity.ok(Map.of(
                 "jobs", vagas,
@@ -39,5 +41,14 @@ public class ExternalJobController {
                 // em ingles) em vez da Adzuna, em vez de o usuario estranhar o resultado.
                 "source", externalJobService.adzunaConfigurada() ? "Adzuna" : "Remotive"
         ));
+    }
+
+    /** Atras do proxy do Railway o remoteAddr e o balanceador; o IP real vem no header. */
+    private String clientIp(HttpServletRequest http) {
+        String forwarded = http.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return http.getRemoteAddr();
     }
 }

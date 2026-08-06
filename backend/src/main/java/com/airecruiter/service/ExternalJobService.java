@@ -1,5 +1,6 @@
 package com.airecruiter.service;
 
+import com.airecruiter.config.SlidingWindowRateLimiter;
 import com.airecruiter.dto.response.ExternalJobResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,16 @@ public class ExternalJobService {
     @Value("${jobs.cache-minutes:30}")
     private int cacheMinutes;
 
+    /** Buscas por IP/hora que chegam a consultar a API externa (as servidas pelo cache nao contam). */
+    @Value("${jobs.max-buscas-por-hora:20}")
+    private int maxBuscasPorHora;
+
+    private final SlidingWindowRateLimiter rateLimiter;
+
+    public ExternalJobService(SlidingWindowRateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
+    }
+
     private final WebClient webClient = WebClient.builder()
             .codecs(c -> c.defaultCodecs().maxInMemorySize(4 * 1024 * 1024))
             .build();
@@ -56,12 +67,21 @@ public class ExternalJobService {
 
     // ------------------------------------------------------------------
 
-    public List<ExternalJobResponse> buscar(String termo, String local, boolean apenasRemotas, int pagina) {
+    public List<ExternalJobResponse> buscar(String termo, String local, boolean apenasRemotas, int pagina, String ip) {
         String chave = String.join("|", nz(termo), nz(local), String.valueOf(apenasRemotas), String.valueOf(pagina));
 
         CacheEntry cacheado = cache.get(chave);
         if (cacheado != null && cacheado.gravadoEm().isAfter(Instant.now().minusSeconds(cacheMinutes * 60L))) {
             return cacheado.vagas();
+        }
+
+        // Chegou aqui = vai bater na API externa de verdade. O cache sozinho nao
+        // protege a cota: variando o termo a cada requisicao, o cache nunca acerta
+        // e a cota mensal de 1.000 chamadas se esgota em minutos. O limite so conta
+        // as chamadas que furam o cache, entao navegacao normal nunca esbarra nele.
+        if (!rateLimiter.tryAcquire("vagas:ip:" + ip, maxBuscasPorHora, 60)) {
+            log.warn("Rate limit de busca de vagas atingido para o IP {}", ip);
+            return cacheado != null ? cacheado.vagas() : List.of();
         }
 
         List<ExternalJobResponse> vagas;

@@ -1,9 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* ===== Design Tokens — Tema Escuro (padrão) ===== */
 :root {
-  --font-display: 'DM Serif Display', Georgia, serif;
-  --font-body:    'DM Sans', system-ui, sans-serif;
+  /*
+    Inter no lugar da dupla DM Serif Display + DM Sans.
+
+    A SamsungOne, usada no site da Samsung, e proprietaria e nao pode ser
+    redistribuida. A Inter e a equivalente livre mais proxima: sans humanista,
+    desenhada para telas, com a mesma neutralidade e contornos abertos.
+
+    Titulos e corpo agora usam a MESMA familia, variando so o peso — e assim que
+    a Samsung faz. O contraste vem da escala e do peso, nao da mistura de
+    serifada com sem serifa.
+  */
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
   --font-mono:    'JetBrains Mono', monospace;
 
   --bg:           #0a0a0b;
@@ -94,7 +105,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 /* ===== Typography ===== */
 h1, h2, h3, h4 {
   font-family: var(--font-display);
-  font-weight: 400;
+  /* Peso 600 em vez de 400: numa serifada o peso normal ja tem presenca
+     suficiente, numa sans o titulo precisa de peso para se destacar do corpo. */
+  font-weight: 600;
   letter-spacing: -0.025em;
   line-height: 1.15;
 }
@@ -156,6 +169,13 @@ code, pre, .mono { font-family: var(--font-mono); font-size: var(--text-sm); }
 .public-layout > .auth-page {
   flex: 1;
   min-height: 0 !important;
+}
+
+/* O card precisa ficar acima do fundo decorativo. O AuthBackdrop e absolute com
+   z-index 0, entao basta empilhar o conteudo em 1. */
+.auth-page > *:not(.auth-backdrop) {
+  position: relative;
+  z-index: 1;
 }
 
 /* ===== Components ===== */

@@ -1,5 +1,6 @@
 <template>
   <div class="auth-page">
+    <AuthBackdrop />
     <RouterLink to="/" class="back-btn" aria-label="Voltar para o início">
       <span class="back-arrow">←</span>
       <span class="back-label">Início</span>
@@ -69,6 +70,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import BrandLogo from '@/components/ui/BrandLogo.vue'
+import AuthBackdrop from '@/components/ui/AuthBackdrop.vue'
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton.vue'
 
 const router = useRouter()

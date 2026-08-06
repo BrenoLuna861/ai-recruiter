@@ -1,6 +1,6 @@
 package com.airecruiter.service;
 
-import com.airecruiter.config.PasswordResetRateLimiter;
+import com.airecruiter.config.SlidingWindowRateLimiter;
 import com.airecruiter.entity.PasswordResetToken;
 import com.airecruiter.entity.User;
 import com.airecruiter.exception.PasswordResetException;
@@ -32,7 +32,7 @@ public class PasswordResetService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
-    private final PasswordResetRateLimiter rateLimiter;
+    private final SlidingWindowRateLimiter rateLimiter;
     private final TransactionTemplate txTemplate;
 
     @Value("${password-reset.ttl-minutes:15}")
@@ -47,7 +47,7 @@ public class PasswordResetService {
                                 UserRepository userRepository,
                                 EmailService emailService,
                                 PasswordEncoder passwordEncoder,
-                                PasswordResetRateLimiter rateLimiter,
+                                SlidingWindowRateLimiter rateLimiter,
                                 PlatformTransactionManager txManager) {
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
@@ -76,7 +76,7 @@ public class PasswordResetService {
         String email = normalize(rawEmail);
         if (email == null) return;
 
-        if (!rateLimiter.tryAcquire("ip:" + requestIp)) {
+        if (!rateLimiter.tryAcquire("reset:ip:" + requestIp, 5, 15)) {
             log.warn("Rate limit de forgot-password atingido para IP {}", requestIp);
             return;
         }
