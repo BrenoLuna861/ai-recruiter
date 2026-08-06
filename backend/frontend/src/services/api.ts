@@ -84,5 +84,8 @@ export const jobApi = {
   create: (data: object) => api.post('/jobs', data),
   apply: (jobId: number, resumeId: number) =>
     api.post(`/jobs/${jobId}/apply?resumeId=${resumeId}`),
-  ranking: (jobId: number) => api.get(`/jobs/${jobId}/ranking`)
+  ranking: (jobId: number) => api.get(`/jobs/${jobId}/ranking`),
+  /** Vagas de fontes externas (Adzuna/Remotive). O backend intermedia e faz cache. */
+  external: (params: { q?: string; local?: string; remotas?: boolean; pagina?: number }) =>
+    api.get('/jobs/external', { params })
 }

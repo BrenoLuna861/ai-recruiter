@@ -2,16 +2,33 @@
   <div>
     <div class="page-header">
       <h1>Vagas</h1>
-      <p class="subtitle">{{ jobs.length }} oportunidades disponíveis</p>
+      <p class="subtitle">{{ totalVisivel }} oportunidades disponíveis</p>
     </div>
+
+    <!-- Filtros -->
+    <form class="filtros" @submit.prevent="buscar">
+      <input v-model="filtroTermo" type="text" class="input" placeholder="Cargo, tecnologia ou palavra-chave" />
+      <input v-model="filtroLocal" type="text" class="input filtro-local" placeholder="Cidade ou estado" />
+      <label class="filtro-check">
+        <input type="checkbox" v-model="filtroRemotas" @change="buscar" />
+        <span>Só remotas</span>
+      </label>
+      <button type="submit" class="btn btn-primary" :disabled="loadingExternas">
+        {{ loadingExternas ? 'Buscando...' : 'Buscar' }}
+      </button>
+    </form>
+
+    <p v-if="fonte === 'Remotive'" class="aviso-fonte">
+      Exibindo vagas remotas internacionais do Remotive. Para vagas brasileiras,
+      configure as chaves da Adzuna nas variáveis de ambiente.
+    </p>
 
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
     </div>
 
-    <div v-else-if="!jobs.length" class="empty-state">
-      <div class="empty-icon">◉</div>
-      <p>Nenhuma vaga disponível no momento</p>
+    <div v-else-if="!totalVisivel" class="empty-state">
+      <p>Nenhuma vaga encontrada{{ filtroTermo ? ` para "${filtroTermo}"` : '' }}</p>
     </div>
 
     <div v-else class="jobs-list">
@@ -64,11 +81,45 @@
         </div>
       </div>
     </div>
+
+    <!-- Vagas externas: nao aceitam candidatura pela plataforma, entao levam ao
+         anuncio original. O selo de origem deixa a diferenca explicita. -->
+    <div v-if="externas.length" class="jobs-list externas">
+      <h2 class="secao-externas">Vagas de outros portais</h2>
+
+      <a
+        v-for="vaga in externas"
+        :key="vaga.id"
+        :href="vaga.url"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="job-card card externa"
+      >
+        <div class="job-header">
+          <div>
+            <div class="job-title">{{ vaga.title }}</div>
+            <div class="job-company">{{ vaga.company || 'Empresa não informada' }}</div>
+          </div>
+          <div class="job-meta">
+            <span class="tag fonte">{{ vaga.source }}</span>
+            <span class="tag" v-if="vaga.remote">Remoto</span>
+            <span class="tag" v-if="vaga.location">{{ vaga.location }}</span>
+          </div>
+        </div>
+
+        <p v-if="vaga.description" class="externa-desc">{{ vaga.description }}</p>
+
+        <div class="job-footer">
+          <span class="job-date">{{ vaga.publishedAt ? formatDate(vaga.publishedAt) : '' }}</span>
+          <span class="expand-hint">Ver no {{ vaga.source }} ↗</span>
+        </div>
+      </a>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { jobApi, resumeApi } from '@/services/api'
 
@@ -82,12 +133,43 @@ const applying = ref(false)
 const applyError = ref('')
 const applySuccess = ref(false)
 
+// ----- vagas externas -----
+const externas = ref<any[]>([])
+const fonte = ref('')
+const loadingExternas = ref(false)
+const filtroTermo = ref('')
+const filtroLocal = ref('')
+const filtroRemotas = ref(false)
+
+const totalVisivel = computed(() => jobs.value.length + externas.value.length)
+
 onMounted(async () => {
   try { jobs.value = (await jobApi.list()).data } catch {} finally { loading.value = false }
   if (auth.isCandidate) {
     try { resumes.value = (await resumeApi.list()).data } catch {}
   }
+  buscar()
 })
+
+async function buscar() {
+  loadingExternas.value = true
+  try {
+    const res = await jobApi.external({
+      q: filtroTermo.value || undefined,
+      local: filtroLocal.value || undefined,
+      remotas: filtroRemotas.value
+    })
+    externas.value = res.data?.jobs || []
+    fonte.value = res.data?.source || ''
+  } catch (e) {
+    // A busca externa e um complemento: se a fonte cair, as vagas internas
+    // continuam na tela em vez de a pagina inteira falhar.
+    console.error('Falha ao buscar vagas externas:', e)
+    externas.value = []
+  } finally {
+    loadingExternas.value = false
+  }
+}
 
 async function applyToJob(jobId: number) {
   applyError.value = ''
@@ -135,4 +217,33 @@ function formatDate(d: string) { return new Date(d).toLocaleDateString('pt-BR') 
 
 .job-footer { display: flex; justify-content: space-between; margin-top: 12px; font-size: var(--text-xs); color: var(--text-muted); }
 .expand-hint { letter-spacing: 0.04em; }
+
+/* ----- filtros ----- */
+.filtros { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+.filtros .input { flex: 1; min-width: 200px; }
+.filtro-local { max-width: 220px; }
+.filtro-check { display: flex; align-items: center; gap: 7px; font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; cursor: pointer; }
+.filtro-check input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+
+.aviso-fonte {
+  font-size: var(--text-xs); color: var(--text-muted); line-height: 1.6;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 14px; margin-bottom: 20px;
+}
+
+/* ----- vagas externas ----- */
+.secao-externas { font-size: var(--text-lg); margin: 32px 0 4px; }
+.job-card.externa { display: block; text-decoration: none; color: inherit; }
+.job-card.externa:hover { border-color: var(--accent); }
+.tag.fonte { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.externa-desc {
+  font-size: var(--text-sm); line-height: 1.65; color: var(--text-muted);
+  margin: 10px 0 0; display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+
+@media (max-width: 600px) {
+  .filtros { flex-direction: column; align-items: stretch; }
+  .filtro-local { max-width: 100%; }
+}
 </style>

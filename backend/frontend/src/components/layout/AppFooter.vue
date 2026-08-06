@@ -5,7 +5,7 @@
   <footer v-if="variant === 'compact'" class="app-footer is-compact">
     <span class="compact-copy">© {{ year }} AI Recruiter</span>
     <nav class="compact-links">
-      <a :href="`mailto:${email}`">{{ email }}</a>
+      <a :href="mailUrl" target="_blank" rel="noopener noreferrer">{{ email }}</a>
       <a
         v-for="s in activeSocials"
         :key="s.label"
@@ -43,7 +43,7 @@
       <!-- Contato -->
       <div class="footer-contact">
         <span class="nav-title">Contato</span>
-        <a :href="`mailto:${email}`">{{ email }}</a>
+        <a :href="mailUrl" target="_blank" rel="noopener noreferrer">{{ email }}</a>
 
         <!-- TODO: preencher com as redes sociais reais.
              Cada item com url vazia simplesmente nao e renderizado, entao da
@@ -87,6 +87,22 @@ withDefaults(defineProps<{
 const auth = useAuthStore()
 const year = new Date().getFullYear()
 const email = 'valenexo05@gmail.com'
+
+/*
+  Abre a janela de composicao do Gmail ja com destinatario e assunto.
+  Preferi isto a um mailto: puro porque o mailto depende de haver um cliente de
+  e-mail configurado na maquina — e quando nao ha, o clique simplesmente nao faz
+  nada, que era o comportamento reclamado. O link do Gmail funciona no navegador.
+*/
+const mailUrl = computed(() => {
+  const params = new URLSearchParams({
+    view: 'cm',
+    fs: '1',
+    to: email,
+    su: 'Contato pelo site AI Recruiter'
+  })
+  return `https://mail.google.com/mail/?${params.toString()}`
+})
 
 // Deixe a url vazia enquanto nao tiver o link — o item some do rodape sozinho.
 // (E assim que o WhatsApp entra depois: basta preencher a url.)

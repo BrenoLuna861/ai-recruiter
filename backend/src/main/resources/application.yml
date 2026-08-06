@@ -75,6 +75,16 @@ resend:
 app:
   frontend-url: ${APP_FRONTEND_URL:https://ai-recruiter.com.br}
 
+jobs:
+  # Cache das buscas externas. O plano gratuito da Adzuna da 1.000 chamadas por MES,
+  # entao sem cache alguem recarregando a pagina queima a cota rapido.
+  cache-minutes: ${JOBS_CACHE_MINUTES:30}
+  adzuna:
+    # Crie em https://developer.adzuna.com. Em branco, o sistema usa o Remotive.
+    app-id: ${ADZUNA_APP_ID:}
+    app-key: ${ADZUNA_APP_KEY:}
+    country: ${ADZUNA_COUNTRY:br}
+
 password-reset:
   # Validade do link enviado por e-mail
   ttl-minutes: ${PASSWORD_RESET_TTL_MINUTES:15}
