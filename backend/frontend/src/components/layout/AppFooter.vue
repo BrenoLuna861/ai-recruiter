@@ -65,11 +65,16 @@
       </div>
     </div>
 
-    <div class="footer-bottom">
-      <span>© {{ year }} AI Recruiter. Todos os direitos reservados.</span>
-      <span class="footer-credit">
-        Desenvolvido por <span class="credit-name">Breno Luna</span>
-      </span>
+    <!-- A borda fica no wrapper, que ocupa a largura total do rodape. O conteudo
+         continua limitado a 1080px e centralizado — assim a linha atravessa de
+         ponta a ponta sem o texto esticar junto. -->
+    <div class="footer-bottom-wrap">
+      <div class="footer-bottom">
+        <span>© {{ year }} AI Recruiter. Todos os direitos reservados.</span>
+        <span class="footer-credit">
+          Desenvolvido por <span class="credit-name">Breno Luna</span>
+        </span>
+      </div>
     </div>
   </footer>
 </template>
@@ -153,7 +158,9 @@ const activeSocials = computed(() => socials.filter(s => s.url))
   gap: 16px;
   padding: 0 24px;
   font-size: var(--text-xs);
-  color: var(--text-faint);
+  /* --text-faint (#3d3d4d) sobre o fundo escuro (#111114) tem contraste baixo
+     demais: o texto praticamente sumia no tema escuro. */
+  color: var(--text-muted);
   background: var(--bg-overlay);
   backdrop-filter: blur(8px);
 }
@@ -252,17 +259,12 @@ const activeSocials = computed(() => socials.filter(s => s.url))
 .social-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ----- barra inferior ----- */
-/*
-  A linha vem de um ::before, e nao de border-top.
+/* A linha atravessa a largura toda do rodape, de borda a borda. */
+.footer-bottom-wrap {
+  border-top: 1px solid var(--border);
+}
 
-  A borda acompanharia a caixa inteira do elemento, padding incluso, ficando
-  32px mais larga de cada lado que o texto que ela separa — desalinhada com a
-  logo acima e com o copyright abaixo. O pseudo-elemento e recuado exatamente
-  pelo mesmo padding, entao a linha comeca e termina onde o conteudo comeca e
-  termina.
-*/
 .footer-bottom {
-  position: relative;
   padding: 16px 32px;
   display: flex;
   justify-content: space-between;
@@ -274,16 +276,6 @@ const activeSocials = computed(() => socials.filter(s => s.url))
   font-size: var(--text-xs);
   color: var(--text-faint);
 }
-.footer-bottom::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 32px;
-  right: 32px;
-  height: 1px;
-  background: var(--border);
-}
-
 .footer-credit { letter-spacing: 0.04em; }
 .credit-name { color: var(--text-muted); }
 
@@ -298,7 +290,5 @@ const activeSocials = computed(() => socials.filter(s => s.url))
     text-align: center;
     padding: 16px 24px;
   }
-  /* Acompanha o padding menor do mobile, para a linha continuar alinhada. */
-  .footer-bottom::before { left: 24px; right: 24px; }
 }
 </style>

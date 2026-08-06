@@ -17,7 +17,10 @@
 
     <AppSidebar :open="menuOpen" @close="menuOpen = false" />
 
-    <main class="main-content">
+    <!-- O chat ocupa toda a area de conteudo, sem a coluna de 1100px das demais
+         telas: e um espaco de trabalho, nao uma pagina de leitura. Assim o painel
+         encosta nas bordas e os divisores dele atravessam de ponta a ponta. -->
+    <main class="main-content" :class="{ 'main-content--full': telaCheia }">
       <RouterView />
     </main>
 
@@ -35,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
@@ -45,6 +48,8 @@ import BrandLogo from '@/components/ui/BrandLogo.vue'
 const auth = useAuthStore()
 const route = useRoute()
 const menuOpen = ref(false)
+
+const telaCheia = computed(() => route.name === 'Chat')
 
 // Fechar menu ao trocar de rota (UX mobile)
 watch(() => route.fullPath, () => { menuOpen.value = false })

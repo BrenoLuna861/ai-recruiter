@@ -183,10 +183,9 @@ function formatTime(d: Date) {
      tamanho do conteudo, e a lista de mensagens deixa de rolar. */
   flex: 1;
   min-height: 0;
-  /* A margem negativa sangra ate as bordas da coluna. Embaixo ela anula apenas
-     os 24px de respiro do padding, preservando os 44px reservados para a barra
-     fixa — assim o chat encosta no topo dela sem ficar por baixo. */
-  margin: -40px -48px -24px;
+  /* Sem margem negativa: o .main-content--full ja entrega a area inteira,
+     sem padding para compensar. */
+  margin: 0;
   padding: 0;
 }
 
@@ -265,23 +264,12 @@ function formatTime(d: Date) {
 .typing span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
 
-/*
-  A linha vem de um ::before recuado pelo mesmo padding lateral, e nao de
-  border-top. A borda acompanharia a caixa inteira, ficando 40px mais larga de
-  cada lado que o campo de mensagem que ela separa.
-*/
 .chat-input-area {
-  position: relative;
   display: flex; align-items: flex-end; gap: 12px;
   padding: 16px 40px;
+  /* Linha de ponta a ponta do painel, igual a do rodape. */
+  border-top: 1px solid var(--border);
   background: var(--bg-2);
-}
-.chat-input-area::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 40px; right: 40px;
-  height: 1px;
-  background: var(--border);
 }
 
 .chat-input {
@@ -308,11 +296,9 @@ function formatTime(d: Date) {
 
 @media (max-width: 900px) {
   /* Mesmo motivo da versao desktop: altura fixa somava com o rodape. */
-  /* -16px embaixo anula so o respiro do padding mobile, mantendo os 44px da barra. */
-  .chat-page { margin: calc(-1 * var(--mobile-bar-h) - 20px) -20px -16px; height: auto; }
+  .chat-page { margin: 0; height: auto; }
   .messages { padding: 20px 16px; }
   .chat-input-area { padding: 12px 16px; }
-  .chat-input-area::before { left: 16px; right: 16px; }
   .msg-bubble { max-width: 85%; }
 }
 </style>

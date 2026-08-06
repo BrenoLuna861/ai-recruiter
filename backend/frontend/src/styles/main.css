@@ -149,6 +149,17 @@ code, pre, .mono { font-family: var(--font-mono); font-size: var(--text-sm); }
   flex-direction: column;
 }
 
+/*
+  Variante de largura total, usada pelo chat. Sem o teto de 1100px e sem padding
+  lateral, o painel encosta nas bordas da area de conteudo — e os divisores dele
+  passam a atravessar de ponta a ponta, como o do rodape.
+  O padding inferior continua reservando a altura da barra fixa.
+*/
+.main-content--full {
+  max-width: none;
+  padding: 0 0 var(--footer-h);
+}
+
 /* Telas publicas (sem sidebar): mesmo efeito de empurrar o rodape para baixo */
 .public-layout {
   display: flex;
@@ -274,6 +285,8 @@ img, svg, video { max-width: 100%; height: auto; display: block; }
   /* No mobile a sidebar vira gaveta sobreposta, entao o espaco reservado sai. */
   .app-layout { padding-left: 0; }
   .main-content { margin-inline: 0; padding: calc(var(--mobile-bar-h) + 20px) 20px calc(var(--footer-h) + 16px); max-width: 100%; }
+  /* No mobile so o topo precisa do respiro da barra fixa superior. */
+  .main-content--full { padding: var(--mobile-bar-h) 0 var(--footer-h); }
   h1 { font-size: 2rem; }
   h2 { font-size: 1.5rem; }
   h3 { font-size: 1.25rem; }
