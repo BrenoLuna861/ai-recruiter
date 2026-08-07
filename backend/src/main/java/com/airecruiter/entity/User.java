@@ -1,5 +1,6 @@
 package com.airecruiter.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -22,6 +23,13 @@ public class User {
     @Column(nullable = false, length = 191)
     private String email;
 
+    /*
+     * @JsonIgnore: esta entidade e serializada em respostas da API (o ranking de
+     * candidatos devolve Application, que carrega o User do candidato). Sem isto,
+     * o hash bcrypt de cada pessoa iria no JSON. Hash nao e senha, mas e material
+     * para ataque offline e nao tem motivo nenhum para sair do servidor.
+     */
+    @JsonIgnore
     @Column(name = "password_hash", nullable = false, length = 72)
     private String passwordHash;
 

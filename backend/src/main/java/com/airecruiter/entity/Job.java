@@ -1,5 +1,6 @@
 package com.airecruiter.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -19,6 +20,20 @@ public class Job {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /*
+     * @JsonIgnore e obrigatorio aqui.
+     *
+     * O JobController devolve a entidade Job diretamente, e o application.yml
+     * define open-in-view: false — a sessao do Hibernate fecha antes da
+     * serializacao. Sem isto, o Jackson tenta ler este proxy preguicoso, lanca
+     * LazyInitializationException e a requisicao vira 500. O sintoma so aparecia
+     * quando existia ao menos uma vaga cadastrada; com a lista vazia, nada
+     * acontecia.
+     *
+     * O frontend nao usa este campo. Se um dia precisar do nome do recrutador,
+     * o certo e um DTO, nao expor a entidade.
+     */
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recruiter_id", nullable = false)
     private User recruiter;

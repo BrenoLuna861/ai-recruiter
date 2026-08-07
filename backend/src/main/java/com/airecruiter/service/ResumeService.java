@@ -127,6 +127,26 @@ public class ResumeService {
         return toResponse(resume, null);
     }
 
+    /**
+     * Gera a versao melhorada do curriculo.
+     *
+     * O conteudo sai do banco, nao do cliente: o texto ja esta salvo desde a
+     * analise, entao nao ha motivo para o navegador reenviar o curriculo inteiro
+     * a cada pedido.
+     */
+    public String improveResume(Long id, String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        Resume resume = resumeRepository.findByIdAndUserId(id, user.getId())
+            .orElseThrow(() -> new IllegalArgumentException("Currículo não encontrado"));
+
+        if (resume.getContent() == null || resume.getContent().isBlank()) {
+            throw new IllegalArgumentException("Este currículo não tem texto extraído para reescrever.");
+        }
+
+        return anthropicService.improveResume(resume.getContent());
+    }
+
     public List<ResumeResponse> getUserResumes(String email) {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));

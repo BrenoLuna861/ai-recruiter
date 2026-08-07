@@ -91,45 +91,49 @@
         </div>
       </details>
 
-      <div class="suggestions-section">
-        <button class="btn btn-secondary suggestions-btn" @click="getSuggestions" :disabled="loadingSuggestions">
-          <span v-if="loadingSuggestions" class="spinner" style="width:14px;height:14px;border-width:2px;border-color:rgba(255,255,255,0.2);border-top-color:#fff"></span>
-          <span>{{ loadingSuggestions ? 'Gerando currículo melhorado...' : '✦ Gerar Currículo Melhorado' }}</span>
-        </button>
-
-        <div v-if="suggestions">
-          <div class="suggestions-grid">
-            <div class="sug-card strengths">
-              <div class="sug-title">✓ Pontos Fortes</div>
-              <ul>
-                <li v-for="(s, i) in suggestions.strengths" :key="i">{{ s }}</li>
-              </ul>
-            </div>
-            <div class="sug-card weaknesses">
-              <div class="sug-title">✗ Pontos Fracos</div>
-              <ul>
-                <li v-for="(s, i) in suggestions.weaknesses" :key="i">{{ s }}</li>
-              </ul>
-            </div>
-          </div>
-          <div class="sug-card improvements" style="margin-top:12px">
-            <div class="sug-title">⚡ Sugestões</div>
+      <!-- Pontos fortes, fracos e sugestoes vem da propria analise, sem uma
+           segunda chamada a IA: eles ja foram gerados e gravados no analysisJson. -->
+      <div v-if="analise" class="suggestions-section">
+        <div class="suggestions-grid">
+          <div class="sug-card strengths">
+            <div class="sug-title">Pontos fortes</div>
             <ul>
-              <li v-for="(s, i) in suggestions.suggestions" :key="i">{{ s }}</li>
+              <li v-for="(s, i) in analise.strengths" :key="i">{{ s }}</li>
             </ul>
           </div>
-
-          <div v-if="suggestions.improvedResume" class="rewritten-box">
-            <div class="rewritten-header">
-              <div class="sug-title">✦ Currículo Melhorado pela IA</div>
-              <div class="rewritten-actions">
-                <button class="btn-copy" @click="copy(suggestions.improvedResume)">{{ copied ? '✓ Copiado' : 'Copiar' }}</button>
-                <button class="btn-download" @click="downloadPDF">⬇ PDF</button>
-                <button class="btn-download" @click="downloadDOCX">⬇ DOCX</button>
-              </div>
-            </div>
-            <div class="rewritten-text">{{ suggestions.improvedResume }}</div>
+          <div class="sug-card weaknesses">
+            <div class="sug-title">Pontos fracos</div>
+            <ul>
+              <li v-for="(s, i) in analise.weaknesses" :key="i">{{ s }}</li>
+            </ul>
           </div>
+        </div>
+        <div class="sug-card improvements" style="margin-top:12px">
+          <div class="sug-title">Sugestões</div>
+          <ul>
+            <li v-for="(s, i) in analise.suggestions" :key="i">{{ s }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="suggestions-section">
+        <button class="btn btn-secondary suggestions-btn" @click="getSuggestions" :disabled="loadingSuggestions">
+          <span v-if="loadingSuggestions" class="spinner" style="width:14px;height:14px;border-width:2px"></span>
+          <span>{{ loadingSuggestions ? 'Reescrevendo o currículo...' : 'Gerar currículo melhorado' }}</span>
+        </button>
+
+        <div v-if="improveError" class="error-box">{{ improveError }}</div>
+
+        <div v-if="improvedResume" class="rewritten-box">
+          <div class="rewritten-header">
+            <div class="sug-title">Currículo reescrito</div>
+            <div class="rewritten-actions">
+              <button class="btn-copy" @click="copy(improvedResume)">{{ copied ? 'Copiado' : 'Copiar' }}</button>
+              <button class="btn-download" @click="downloadPDF">PDF</button>
+              <button class="btn-download" @click="downloadDOCX">DOCX</button>
+            </div>
+          </div>
+          <div class="rewritten-text">{{ improvedResume }}</div>
         </div>
       </div>
 
@@ -158,7 +162,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { resumeApi, chatApi } from '@/services/api'
+import { resumeApi } from '@/services/api'
 import { jsPDF } from 'jspdf'
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx'
 import { saveAs } from 'file-saver'
@@ -173,7 +177,8 @@ const loadingSuggestions = ref(false)
 const error = ref('')
 const result = ref<any>(null)
 const resumes = ref<any[]>([])
-const suggestions = ref<any>(null)
+const improvedResume = ref('')
+const improveError = ref('')
 const copied = ref(false)
 
 // Analise qualitativa: vem do MySQL (analysisJson), entao nao depende do MongoDB.
@@ -242,7 +247,7 @@ async function analyze() {
   error.value = ''
   loading.value = true
   result.value = null
-  suggestions.value = null
+  improvedResume.value = ''
   iniciarProgresso()
   try {
     let res
@@ -275,32 +280,29 @@ async function analyze() {
   }
 }
 
+/*
+  Antes esta funcao montava um prompt gigante com o curriculo inteiro e mandava
+  para /api/chat/message, que tem @Size(max = 4000) — qualquer curriculo real
+  estourava e voltava 400, produzindo os "Nao foi possivel carregar".
+
+  Pior: ela pedia a IA pontos fortes, fracos e sugestoes que a analise JA tinha
+  devolvido e gravado no analysisJson. Era uma segunda cobranca da Anthropic
+  para obter dados que ja estavam na tela.
+
+  Agora esses tres vem da analise (computed `analise`), e aqui sobrou apenas a
+  reescrita — num endpoint proprio, que le o texto do banco pelo id.
+*/
 async function getSuggestions() {
+  if (!result.value?.id) return
   loadingSuggestions.value = true
+  improveError.value = ''
   try {
-    const originalContent = result.value?.content || resumeText.value || ''
-    const prompt = `Você é um especialista em currículos. Com base no currículo original abaixo, faça o seguinte:
-1. Identifique 3 pontos fortes
-2. Identifique 3 pontos fracos
-3. Liste 3 sugestões de melhoria
-4. Reescreva o currículo COMPLETO melhorado, mantendo TODOS os dados originais (nome, email, telefone, experiências, formação, habilidades) mas com linguagem mais profissional, otimizado para ATS e com as melhorias aplicadas.
-
-Retorne APENAS um JSON válido sem markdown com os campos: strengths (array), weaknesses (array), suggestions (array), improvedResume (string com o currículo completo melhorado).
-
-CURRÍCULO ORIGINAL:
-${originalContent}`
-
-    const res = await chatApi.send(prompt)
-    const text = res.data?.response || ''
-    const clean = text.replace(/```json|```/g, '').trim()
-    suggestions.value = JSON.parse(clean)
-  } catch {
-    suggestions.value = {
-      strengths: ['Não foi possível carregar os pontos fortes'],
-      weaknesses: ['Não foi possível carregar os pontos fracos'],
-      suggestions: ['Tente novamente em instantes'],
-      improvedResume: ''
-    }
+    const res = await resumeApi.improve(result.value.id)
+    improvedResume.value = res.data?.improvedResume || ''
+  } catch (e: any) {
+    improveError.value = e.code === 'ECONNABORTED'
+      ? 'A reescrita passou de 2 minutos e foi interrompida. Tente com um currículo menor.'
+      : (e.response?.data?.message || 'Não foi possível gerar a versão melhorada. Tente novamente.')
   } finally {
     loadingSuggestions.value = false
   }
@@ -310,7 +312,7 @@ async function loadResume(id: number) {
   try {
     const res = await resumeApi.get(id)
     result.value = res.data
-    suggestions.value = null
+    improvedResume.value = ''
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   } catch {}
 }
@@ -328,7 +330,7 @@ function downloadPDF() {
   const maxWidth = doc.internal.pageSize.getWidth() - margin * 2
   let y = 20
 
-  const text = suggestions.value?.improvedResume || ''
+  const text = improvedResume.value
   const lines = text.split('\n')
 
   doc.setFont('helvetica', 'normal')
@@ -347,7 +349,7 @@ function downloadPDF() {
 
 async function downloadDOCX() {
   const fileName = (title.value || 'curriculo') + '_melhorado.docx'
-  const text = suggestions.value?.improvedResume || ''
+  const text = improvedResume.value
   const lines = text.split('\n')
 
   const children = lines.map((line: string) => {

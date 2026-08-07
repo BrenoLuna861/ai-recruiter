@@ -1,5 +1,6 @@
 package com.airecruiter.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -22,14 +23,27 @@ public class Application {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /*
+     * O endpoint de ranking devolve esta entidade direto, e com open-in-view:
+     * false a sessao ja esta fechada na hora de serializar. Qualquer relacao
+     * preguicosa que o Jackson tocar lanca LazyInitializationException e a
+     * requisicao vira 500.
+     *
+     * job e resume nao sao usados pela tela — o recrutador ja sabe de qual vaga
+     * e o ranking — entao ficam fora da resposta. candidate e EAGER porque a
+     * tela mostra o nome da pessoa; o passwordHash dele esta protegido por
+     * @JsonIgnore na propria entidade User.
+     */
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_id", nullable = false)
     private Job job;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "candidate_id", nullable = false)
     private User candidate;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "resume_id", nullable = false)
     private Resume resume;

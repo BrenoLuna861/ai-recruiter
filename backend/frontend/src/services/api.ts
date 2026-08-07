@@ -57,7 +57,9 @@ export const resumeApi = {
     })
   },
   list: () => api.get('/resumes'),
-  get: (id: number) => api.get(`/resumes/${id}`)
+  get: (id: number) => api.get(`/resumes/${id}`),
+  /** Reescrita do currículo. O texto sai do banco — só enviamos o id. */
+  improve: (id: number) => api.post(`/resumes/${id}/improve`, {}, { timeout: 120000 })
 }
 
 // Chat

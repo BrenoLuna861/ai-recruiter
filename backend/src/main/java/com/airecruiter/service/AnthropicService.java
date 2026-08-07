@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+
 import java.util.List;
 import java.util.Map;
 
@@ -153,7 +155,8 @@ public class AnthropicService {
                 log.error("Anthropic API error: {}", e.getMessage());
                 return Mono.just("Erro ao conectar com o agente de IA. Tente novamente.");
             })
-            .block();
+            // Mesmo motivo do callClaude: sem timeout, a thread trava e vira 502.
+            .block(Duration.ofSeconds(100));
     }
 
     public String matchResumeToJob(String resumeContent, String jobDescription) {
@@ -173,6 +176,34 @@ public class AnthropicService {
               "recommendation": "<recomendação para o recrutador>"
             }
             """.formatted(resumeContent, jobDescription);
+
+        return callClaude(prompt);
+    }
+
+    /**
+     * Reescreve o curriculo inteiro, otimizado para ATS.
+     *
+     * Endpoint proprio em vez de reaproveitar o chat: o texto de um curriculo
+     * passa facilmente dos 4.000 caracteres que o ChatMessageRequest permite,
+     * e afrouxar aquele limite enfraqueceria a protecao do chat contra abuso.
+     */
+    public String improveResume(String resumeContent) {
+        String prompt = """
+            Reescreva o currículo a seguir mantendo TODOS os dados originais —
+            nome, contato, experiências, formação, habilidades e datas. Não invente
+            nada e não remova nada.
+
+            O que muda é a forma: linguagem mais profissional, verbos de ação,
+            conquistas quantificadas quando o dado existir no original, e estrutura
+            legível por sistemas de triagem (ATS). Evite tabelas, colunas e
+            caracteres decorativos, que quebram a extração de texto.
+
+            Responda apenas com o currículo reescrito, sem comentários seus, sem
+            markdown e sem título de apresentação.
+
+            CURRÍCULO ORIGINAL:
+            %s
+            """.formatted(resumeContent);
 
         return callClaude(prompt);
     }
@@ -200,6 +231,13 @@ public class AnthropicService {
                 log.error("Anthropic API error: {}", e.getMessage());
                 return Mono.just("{}");
             })
-            .block();
+            /*
+             * Timeout obrigatorio. Sem ele o block() espera indefinidamente, a thread
+             * da requisicao fica presa e quem desiste primeiro e o proxy do Railway,
+             * devolvendo 502 ao navegador — sem nada no log explicando.
+             * 100s deixa margem sobre os 60s tipicos de uma analise e ainda cabe
+             * dentro do timeout de 120s do axios no frontend.
+             */
+            .block(Duration.ofSeconds(100));
     }
 }
