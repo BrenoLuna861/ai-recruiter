@@ -59,9 +59,11 @@ public class Job {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "job_type", length = 20)
+    @Builder.Default
     private JobType jobType = JobType.FULL_TIME;
 
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private boolean active = true;
 
     @CreationTimestamp

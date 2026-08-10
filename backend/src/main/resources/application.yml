@@ -85,6 +85,14 @@ jobs:
     app-key: ${ADZUNA_APP_KEY:}
     country: ${ADZUNA_COUNTRY:br}
 
+email-verification:
+  # Validade do código de confirmação de cadastro
+  ttl-minutes: ${EMAIL_VERIFICATION_TTL_MINUTES:30}
+  # Tentativas erradas antes de o código ser descartado. É isto que impede
+  # força bruta num número de apenas seis dígitos.
+  max-attempts: ${EMAIL_VERIFICATION_MAX_ATTEMPTS:5}
+  max-per-window: ${EMAIL_VERIFICATION_MAX_PER_WINDOW:3}
+
 password-reset:
   # Validade do link enviado por e-mail
   ttl-minutes: ${PASSWORD_RESET_TTL_MINUTES:15}

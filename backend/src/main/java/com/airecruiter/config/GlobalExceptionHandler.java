@@ -1,5 +1,6 @@
 package com.airecruiter.config;
 
+import com.airecruiter.exception.EmailNotVerifiedException;
 import com.airecruiter.exception.PasswordResetException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.ClientAbortException;
@@ -35,6 +36,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIllegalArg(IllegalArgumentException ex) {
         return ResponseEntity.badRequest()
             .body(new ErrorResponse(ex.getMessage(), 400, LocalDateTime.now()));
+    }
+
+    /**
+     * 403 com um corpo que o frontend reconhece pelo campo emailNotVerified.
+     * Nao e 401: a senha estava certa, o que falta e confirmar a conta — e a tela
+     * precisa desviar para a confirmacao em vez de dizer "credenciais invalidas".
+     */
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<Map<String, Object>> handleEmailNotVerified(EmailNotVerifiedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+            "emailNotVerified", true,
+            "email", ex.getEmail(),
+            "message", ex.getMessage()
+        ));
     }
 
     @ExceptionHandler(PasswordResetException.class)

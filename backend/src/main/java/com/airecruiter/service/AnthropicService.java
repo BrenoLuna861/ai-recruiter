@@ -189,17 +189,41 @@ public class AnthropicService {
      */
     public String improveResume(String resumeContent) {
         String prompt = """
-            Reescreva o currículo a seguir mantendo TODOS os dados originais —
-            nome, contato, experiências, formação, habilidades e datas. Não invente
-            nada e não remova nada.
+            Reescreva o currículo a seguir para caber em UMA PÁGINA.
 
-            O que muda é a forma: linguagem mais profissional, verbos de ação,
-            conquistas quantificadas quando o dado existir no original, e estrutura
-            legível por sistemas de triagem (ATS). Evite tabelas, colunas e
-            caracteres decorativos, que quebram a extração de texto.
+            Esta é a restrição mais importante. Recrutadores gastam segundos por
+            currículo, e três páginas de júnior sinalizam falta de critério. Como
+            referência prática: no máximo 550 palavras no total.
 
-            Responda apenas com o currículo reescrito, sem comentários seus, sem
-            markdown e sem título de apresentação.
+            O QUE CORTAR
+
+            Corte sem dó. Descrições de projeto que repetem a mesma competência,
+            adjetivos sobre si mesmo, tecnologias citadas de passagem, e qualquer
+            frase que não prove uma capacidade. Mantenha no máximo três projetos e
+            três experiências — as mais fortes. Cada uma com no máximo três linhas.
+
+            O QUE PRESERVAR
+
+            Nome, contato, formação, datas e os fatos verificáveis. Não invente
+            nada: nenhuma métrica, empresa, tecnologia ou período que não esteja no
+            original. Se o original não tem números, não crie números.
+
+            FORMATO DA SAÍDA
+
+            Texto puro, sem markdown, sem asteriscos, sem tabelas e sem colunas —
+            eles quebram a extração dos sistemas de triagem.
+
+            Títulos de seção em MAIÚSCULAS, sozinhos na linha, nesta ordem:
+            RESUMO PROFISSIONAL, EXPERIÊNCIA PROFISSIONAL, PROJETOS, FORMAÇÃO
+            ACADÊMICA, HABILIDADES TÉCNICAS. Omita a seção que não tiver conteúdo.
+
+            Uma linha em branco entre seções, nenhuma dentro delas. Itens de
+            experiência começam com hífen e verbo de ação no passado.
+
+            O resumo profissional tem no máximo três linhas.
+
+            Responda apenas com o currículo. Sem comentários, sem explicação do que
+            você mudou, sem título de apresentação.
 
             CURRÍCULO ORIGINAL:
             %s

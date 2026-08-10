@@ -35,10 +35,24 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
+    @Builder.Default
     private Role role = Role.CANDIDATE;
 
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private boolean active = true;
+
+    /**
+     * Se o dono do e-mail confirmou o cadastro com o codigo enviado.
+     *
+     * O padrao e true de proposito: quem entra pelo Google ja teve o e-mail
+     * verificado por eles, e as contas que existiam antes desta funcionalidade
+     * nao podem ser trancadas fora do sistema. O cadastro por e-mail e o unico
+     * lugar que marca explicitamente como false.
+     */
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private boolean emailVerified = true;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

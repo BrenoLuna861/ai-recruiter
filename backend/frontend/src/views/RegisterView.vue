@@ -46,8 +46,12 @@
           <input v-model="form.email" type="email" class="input" placeholder="seu@email.com" required />
         </div>
         <div class="field">
-          <label class="label">Senha</label>
-          <input v-model="form.password" type="password" class="input" placeholder="mínimo 8 caracteres" required minlength="8" />
+          <PasswordField
+            v-model="form.password"
+            placeholder="mínimo 8 caracteres"
+            autocomplete="new-password"
+            mostrar-forca
+          />
         </div>
 
         <button type="submit" class="btn btn-primary w-full" :disabled="loading">
@@ -71,6 +75,7 @@ import { useAuthStore } from '@/stores/auth'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import BrandLogo from '@/components/ui/BrandLogo.vue'
 import AuthBackdrop from '@/components/ui/AuthBackdrop.vue'
+import PasswordField from '@/components/ui/PasswordField.vue'
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton.vue'
 
 const router = useRouter()
@@ -84,7 +89,8 @@ async function handleRegister() {
   loading.value = true
   try {
     await auth.register(form.name, form.email, form.password, form.role)
-    router.push('/dashboard')
+    // Vai para a confirmação, levando o e-mail para a tela não precisar perguntar.
+    router.push({ path: '/confirmar-email', query: { email: form.email } })
   } catch (e: any) {
     error.value = e.response?.data?.message || 'Erro ao criar conta'
   } finally {

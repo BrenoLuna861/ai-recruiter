@@ -1,6 +1,7 @@
 package com.airecruiter.controller;
 
 import com.airecruiter.dto.request.ChatMessageRequest;
+import com.airecruiter.dto.response.ChatSessionResponse;
 import com.airecruiter.entity.ChatLog;
 import com.airecruiter.service.ChatService;
 import jakarta.validation.Valid;
@@ -34,5 +35,24 @@ public class ChatController {
     public ResponseEntity<List<ChatLog>> history(@PathVariable String sessionId,
                                                   @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(chatService.getHistory(sessionId, userDetails.getUsername()));
+    }
+
+    /** Conversas anteriores, para a lista lateral. */
+    @GetMapping("/sessions")
+    public ResponseEntity<List<ChatSessionResponse>> sessions(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(chatService.listSessions(userDetails.getUsername()));
+    }
+
+    @DeleteMapping("/sessions/{sessionId}")
+    public ResponseEntity<Void> deleteSession(@PathVariable String sessionId,
+                                              @AuthenticationPrincipal UserDetails userDetails) {
+        chatService.deleteSession(sessionId, userDetails.getUsername());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/sessions")
+    public ResponseEntity<Void> deleteAll(@AuthenticationPrincipal UserDetails userDetails) {
+        chatService.deleteAllSessions(userDetails.getUsername());
+        return ResponseEntity.noContent().build();
     }
 }

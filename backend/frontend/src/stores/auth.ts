@@ -39,9 +39,13 @@ export const useAuthStore = defineStore('auth', () => {
     return res.data
   }
 
+  /*
+    O cadastro NAO autentica mais: a conta so vira utilizavel apos a confirmacao
+    por codigo. Guardar o token aqui tornaria o passo opcional na pratica, ja que
+    a pessoa entraria no app sem nunca confirmar o e-mail.
+  */
   async function register(name: string, email: string, password: string, role: string) {
     const res = await authApi.register({ name, email, password, role })
-    setAuth(res.data)
     return res.data
   }
 

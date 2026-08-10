@@ -37,6 +37,35 @@ public class EmailService {
             .baseUrl("https://api.resend.com")
             .build();
 
+    /** E-mail de confirmação de cadastro, com o código de seis dígitos. */
+    public void sendVerificationEmail(String toEmail, String codigo, int ttlMinutes) {
+        String html = """
+            <!DOCTYPE html>
+            <html><head><meta charset="UTF-8"><style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0b; color: #e5e5e5; margin: 0; padding: 0; }
+              .container { max-width: 480px; margin: 40px auto; background: #111113; border: 1px solid #222226; border-radius: 12px; overflow: hidden; }
+              .header { padding: 32px 40px 24px; border-bottom: 1px solid #222226; font-size: 16px; font-weight: 600; }
+              .body { padding: 32px 40px; }
+              h1 { font-size: 22px; margin: 0 0 12px; color: #fff; }
+              p { font-size: 14px; line-height: 1.7; color: #9ca3af; margin: 0 0 20px; }
+              .codigo { font-family: 'SF Mono', Menlo, monospace; font-size: 34px; letter-spacing: 10px; color: #6ee7b7; background: #0a0a0b; border: 1px solid #222226; border-radius: 8px; padding: 18px 0; text-align: center; margin: 24px 0; }
+              .footer { padding: 20px 40px; border-top: 1px solid #222226; font-size: 12px; color: #4b5563; }
+            </style></head>
+            <body><div class="container">
+              <div class="header">AI Recruiter</div>
+              <div class="body">
+                <h1>Confirme seu cadastro</h1>
+                <p>Use o código abaixo para confirmar sua conta e começar a usar a plataforma.</p>
+                <div class="codigo">%s</div>
+                <p>O código expira em <strong style="color:#e5e5e5">%d minutos</strong>. Se não foi você quem se cadastrou, ignore este email — nenhuma conta será ativada sem esta confirmação.</p>
+              </div>
+              <div class="footer">AI Recruiter — Plataforma Inteligente de Recrutamento<br>Este é um email automático, não responda.</div>
+            </div></body></html>
+            """.formatted(codigo, ttlMinutes);
+
+        enviar(toEmail, "Seu código de confirmação — AI Recruiter", html);
+    }
+
     public void sendPasswordResetEmail(String toEmail, String token, int ttlMinutes) {
         // O token vai na URL, entao precisa ser URL-safe. Ele ja e base64url,
         // mas encodamos por seguranca caso o gerador mude no futuro.
@@ -95,13 +124,6 @@ public class EmailService {
             </html>
             """.formatted(resetLink, resetLink, validade);
 
-        Map<String, Object> payload = Map.of(
-                "from", fromEmail,
-                "to", new String[]{toEmail},
-                "subject", "Recuperação de senha — AI Recruiter",
-                "html", htmlBody
-        );
-
         if (resendApiKey == null || resendApiKey.isBlank()) {
             // Em dev, imprimir o link no log deixa o fluxo testavel sem provedor
             // nenhum. Em producao isso seria um vazamento: qualquer um com acesso
@@ -118,6 +140,23 @@ public class EmailService {
             }
             return;
         }
+
+        enviar(toEmail, "Recuperação de senha — AI Recruiter", htmlBody);
+    }
+
+    /** Envio propriamente dito. Compartilhado pelos dois tipos de e-mail. */
+    private void enviar(String toEmail, String assunto, String html) {
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            log.error("RESEND_API_KEY nao configurada — e-mail \"{}\" NAO foi enviado.", assunto);
+            return;
+        }
+
+        Map<String, Object> payload = Map.of(
+                "from", fromEmail,
+                "to", new String[]{toEmail},
+                "subject", assunto,
+                "html", html
+        );
 
         try {
             // block() com timeout: sem ele, uma instabilidade do Resend prenderia a
@@ -138,6 +177,6 @@ public class EmailService {
                     "Resend recusou o envio (" + e.getStatusCode() + "): " + e.getResponseBodyAsString(), e);
         }
 
-        log.info("Email de recuperação enviado");
+        log.info("E-mail enviado: {}", assunto);
     }
 }

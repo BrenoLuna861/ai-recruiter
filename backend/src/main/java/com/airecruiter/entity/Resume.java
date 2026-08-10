@@ -71,9 +71,20 @@ public class Resume {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
+    /*
+     * @Builder.Default e obrigatorio aqui.
+     *
+     * Sem ele o Lombok IGNORA o valor inicial quando o objeto vem do builder.
+     * Foi o que aconteceu com `active`: todo curriculo era salvo com
+     * is_active = 0, e a listagem (findByUserIdAndActiveTrue) nunca achava
+     * nenhum — dai o dashboard mostrar zero curriculos analisados e nenhum
+     * score, mesmo com a analise tendo funcionado.
+     */
+    @Builder.Default
     private Status status = Status.PENDING;
 
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private boolean active = true;
 
     @CreationTimestamp

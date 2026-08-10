@@ -42,6 +42,10 @@ export const authApi = {
     api.post('/auth/reset-password', data),
   validateResetToken: (token: string) =>
     api.get('/auth/reset-password/validate', { params: { token } }),
+  verifyEmail: (data: { email: string; code: string }) =>
+    api.post('/auth/verify-email', data),
+  resendCode: (data: { email: string }) =>
+    api.post('/auth/resend-code', data),
   health: () => api.get('/auth/health')
 }
 

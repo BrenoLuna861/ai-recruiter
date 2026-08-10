@@ -18,9 +18,18 @@
       </button>
     </form>
 
-    <p v-if="fonte === 'Remotive'" class="aviso-fonte">
-      Exibindo vagas remotas internacionais do Remotive. Para vagas brasileiras,
-      configure as chaves da Adzuna nas variáveis de ambiente.
+    <!-- A origem fica aqui, junto do filtro, e nao repetida em cada card:
+         é informação sobre a busca, não sobre a vaga individual. -->
+    <p v-if="fonte" class="aviso-fonte">
+      <template v-if="fonte === 'Adzuna'">
+        As vagas de outros portais vêm do <strong>Adzuna</strong>, que agrega
+        anúncios de diversos sites de emprego. Ao abrir uma delas você é levado ao
+        anúncio original, onde a candidatura acontece.
+      </template>
+      <template v-else>
+        Exibindo vagas remotas internacionais do <strong>Remotive</strong>. Para
+        vagas brasileiras, configure as chaves da Adzuna nas variáveis de ambiente.
+      </template>
     </p>
 
     <div v-if="loading" class="loading-state">
@@ -101,7 +110,6 @@
             <div class="job-company">{{ vaga.company || 'Empresa não informada' }}</div>
           </div>
           <div class="job-meta">
-            <span class="tag fonte">{{ vaga.source }}</span>
             <span class="tag" v-if="vaga.remote">Remoto</span>
             <span class="tag" v-if="vaga.location">{{ vaga.location }}</span>
           </div>

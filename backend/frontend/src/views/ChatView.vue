@@ -83,8 +83,11 @@ async function sendMessage() {
     const res = await chatApi.send(text, sessionId.value)
     sessionId.value = res.data.sessionId
     messages.value.push({ role: 'assistant', content: res.data.response, time: new Date() })
-  } catch {
-    messages.value.push({ role: 'assistant', content: 'Desculpe, ocorreu um erro. Tente novamente.', time: new Date() })
+  } catch (e: any) {
+    // O catch vazio anterior escondia a causa: qualquer falha virava a mesma
+    // frase, e nem o console mostrava o motivo.
+    console.error('Falha no chat:', e.response?.status, e.response?.data)
+    messages.value.push({ role: 'assistant', content: mensagemDeErro(e), time: new Date() })
   } finally {
     loading.value = false
     await scrollBottom()
@@ -165,6 +168,19 @@ function inline(s: string) {
   return s
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+}
+
+/** Mensagens distintas por causa: cada uma pede uma ação diferente de quem lê. */
+function mensagemDeErro(e: any) {
+  const status = e.response?.status
+  if (status === 401) return 'Sua sessão expirou. Entre novamente para continuar.'
+  if (status === 400) return 'Sua mensagem passou do limite de 4.000 caracteres. Tente resumir.'
+  if (status === 429) return 'Muitas mensagens em pouco tempo. Aguarde alguns instantes.'
+  if (status === 502 || status === 504 || e.code === 'ECONNABORTED') {
+    return 'A resposta demorou mais que o esperado e foi interrompida. Tente novamente.'
+  }
+  if (status >= 500) return 'O servidor falhou ao processar sua mensagem. Tente novamente em instantes.'
+  return 'Não consegui responder agora. Verifique sua conexão e tente novamente.'
 }
 
 function formatTime(d: Date) {

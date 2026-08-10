@@ -6,6 +6,7 @@ import com.airecruiter.dto.request.RegisterRequest;
 import com.airecruiter.dto.response.AuthResponse;
 import com.airecruiter.service.AuthService;
 import com.airecruiter.service.GoogleAuthService;
+import com.airecruiter.service.EmailVerificationService;
 import com.airecruiter.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -27,10 +28,40 @@ public class AuthController {
     private final AuthService authService;
     private final GoogleAuthService googleAuthService;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
 
+    /** Cria a conta e envia o código. Não devolve token: falta confirmar. */
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest req) {
-        return ResponseEntity.status(201).body(authService.register(req));
+    public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest req,
+                                                        HttpServletRequest http) {
+        authService.register(req, clientIp(http));
+        return ResponseEntity.status(201).body(Map.of(
+                "message", "Cadastro criado. Enviamos um código de confirmação para o seu e-mail.",
+                "email", req.getEmail()
+        ));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<Map<String, Object>> verifyEmail(@Valid @RequestBody VerifyEmailRequest req) {
+        boolean ok = emailVerificationService.confirmar(req.getEmail(), req.getCode());
+        if (!ok) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "verified", false,
+                    "message", "Código inválido ou expirado. Peça um novo."
+            ));
+        }
+        return ResponseEntity.ok(Map.of(
+                "verified", true,
+                "message", "Conta confirmada. Você já pode entrar."
+        ));
+    }
+
+    /** Reenvio. Responde 200 sempre, para não revelar quais e-mails têm conta. */
+    @PostMapping("/resend-code")
+    public ResponseEntity<Map<String, String>> resendCode(@Valid @RequestBody ForgotPasswordRequest req,
+                                                          HttpServletRequest http) {
+        emailVerificationService.enviarCodigo(req.getEmail(), clientIp(http));
+        return ResponseEntity.ok(Map.of("message", "Se houver cadastro pendente, um novo código foi enviado."));
     }
 
     @PostMapping("/login")
@@ -91,6 +122,15 @@ public class AuthController {
     static class ForgotPasswordRequest {
         @Email @NotBlank
         private String email;
+    }
+
+    @Data
+    static class VerifyEmailRequest {
+        @Email @NotBlank
+        private String email;
+        @NotBlank
+        @Size(min = 6, max = 6, message = "O código tem 6 dígitos")
+        private String code;
     }
 
     @Data

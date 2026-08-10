@@ -53,6 +53,7 @@ public class SecurityConfig {
                     "/register",
                     "/forgot-password",
                     "/reset-password",
+                    "/confirmar-email",
                     "/admin",
                     "/jobs",
                     "/dashboard",
@@ -71,7 +72,9 @@ public class SecurityConfig {
                     "/api/auth/login",
                     "/api/auth/google",
                     "/api/auth/forgot-password",
-                    "/api/auth/reset-password"
+                    "/api/auth/reset-password",
+                    "/api/auth/verify-email",
+                    "/api/auth/resend-code"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/auth/health").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/auth/reset-password/validate").permitAll()

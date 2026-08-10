@@ -80,6 +80,9 @@ public class GoogleAuthService {
                     .passwordHash(passwordEncoder.encode(randomPwd))
                     .role(role)
                     .active(true)
+                    // O Google ja verificou este e-mail; pedir codigo de novo seria
+                    // atrito sem ganho de seguranca.
+                    .emailVerified(true)
                     .build();
             return userRepository.save(created);
         });
