@@ -71,7 +71,11 @@ export const chatApi = {
   send: (message: string, sessionId?: string) =>
     api.post('/chat/message', { message, sessionId }),
   history: (sessionId: string) =>
-    api.get(`/chat/history/${sessionId}`)
+    api.get(`/chat/history/${sessionId}`),
+  /** Conversas anteriores, para a lista lateral. */
+  sessions: () => api.get('/chat/sessions'),
+  deleteSession: (sessionId: string) => api.delete(`/chat/sessions/${sessionId}`),
+  deleteAllSessions: () => api.delete('/chat/sessions')
 }
 
 // Admin

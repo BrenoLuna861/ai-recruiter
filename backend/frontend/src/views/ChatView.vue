@@ -1,5 +1,68 @@
 <template>
   <div class="chat-page">
+    <!-- Histórico. Recolhível porque numa tela estreita a conversa é o que importa. -->
+    <aside class="historico" :class="{ aberto: historicoAberto }">
+      <div class="historico-topo">
+        <button class="btn-nova" @click="novaConversa">Nova conversa</button>
+      </div>
+
+      <div class="historico-lista">
+        <p v-if="carregandoSessoes" class="historico-vazio">Carregando...</p>
+        <p v-else-if="!sessoes.length" class="historico-vazio">
+          Suas conversas aparecerão aqui.
+        </p>
+
+        <div
+          v-for="s in sessoes"
+          :key="s.sessionId"
+          class="sessao"
+          :class="{ ativa: s.sessionId === sessionId }"
+          @click="abrirConversa(s.sessionId)"
+        >
+          <div class="sessao-info">
+            <span class="sessao-titulo">{{ s.title }}</span>
+            <span class="sessao-meta">{{ formatarData(s.lastMessageAt) }} · {{ s.messageCount }} msgs</span>
+          </div>
+          <button
+            class="sessao-apagar"
+            :aria-label="`Apagar conversa: ${s.title}`"
+            title="Apagar conversa"
+            @click.stop="pedirExclusao(s)"
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <button v-if="sessoes.length" class="btn-apagar-tudo" @click="pedirExclusaoTotal">
+        Apagar todo o histórico
+      </button>
+    </aside>
+
+    <button class="historico-toggle" @click="historicoAberto = !historicoAberto"
+            :aria-label="historicoAberto ? 'Fechar histórico' : 'Abrir histórico'">
+      {{ historicoAberto ? '×' : '☰' }}
+    </button>
+
+    <!-- Confirmação antes de apagar: exclusão de conversa não tem desfazer. -->
+    <div v-if="paraApagar" class="confirmacao-fundo" @click.self="paraApagar = null">
+      <div class="confirmacao">
+        <h3>{{ paraApagar === 'tudo' ? 'Apagar todo o histórico?' : 'Apagar esta conversa?' }}</h3>
+        <p>
+          {{ paraApagar === 'tudo'
+            ? `Todas as ${sessoes.length} conversas serão removidas.`
+            : `"${(paraApagar as any).title}" será removida.` }}
+          Esta ação não pode ser desfeita.
+        </p>
+        <div class="confirmacao-acoes">
+          <button class="btn btn-secondary" @click="paraApagar = null">Cancelar</button>
+          <button class="btn btn-perigo" @click="confirmarExclusao">Apagar</button>
+        </div>
+      </div>
+    </div>
+
     <div class="chat-container card">
       <!-- Messages -->
       <div class="messages" ref="messagesEl">
@@ -52,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, computed } from 'vue'
+import { ref, nextTick, computed, onMounted } from 'vue'
 import { chatApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -63,6 +126,81 @@ const loading = ref(false)
 const sessionId = ref('')
 const messagesEl = ref<HTMLElement>()
 const inputEl = ref<HTMLTextAreaElement>()
+
+// ----- histórico -----
+const sessoes = ref<any[]>([])
+const carregandoSessoes = ref(true)
+const historicoAberto = ref(false)
+/** null = nada a apagar; 'tudo' = limpar histórico; objeto = uma conversa. */
+const paraApagar = ref<any>(null)
+
+onMounted(carregarSessoes)
+
+async function carregarSessoes() {
+  carregandoSessoes.value = true
+  try {
+    sessoes.value = (await chatApi.sessions()).data
+  } catch (e) {
+    console.error('Falha ao carregar conversas:', e)
+    sessoes.value = []
+  } finally {
+    carregandoSessoes.value = false
+  }
+}
+
+async function abrirConversa(id: string) {
+  if (id === sessionId.value) { historicoAberto.value = false; return }
+  try {
+    const logs = (await chatApi.history(id)).data
+    messages.value = logs.map((l: any) => ({
+      role: l.role,
+      content: l.content,
+      time: new Date(l.createdAt)
+    }))
+    sessionId.value = id
+    historicoAberto.value = false
+    await scrollBottom()
+  } catch (e) {
+    console.error('Falha ao abrir conversa:', e)
+  }
+}
+
+function novaConversa() {
+  messages.value = []
+  sessionId.value = ''
+  historicoAberto.value = false
+}
+
+function pedirExclusao(sessao: any) { paraApagar.value = sessao }
+function pedirExclusaoTotal() { paraApagar.value = 'tudo' }
+
+async function confirmarExclusao() {
+  const alvo = paraApagar.value
+  paraApagar.value = null
+  try {
+    if (alvo === 'tudo') {
+      await chatApi.deleteAllSessions()
+      novaConversa()
+    } else {
+      await chatApi.deleteSession(alvo.sessionId)
+      // Se a conversa aberta era a apagada, a tela precisa esvaziar junto.
+      if (alvo.sessionId === sessionId.value) novaConversa()
+    }
+    await carregarSessoes()
+  } catch (e) {
+    console.error('Falha ao apagar:', e)
+  }
+}
+
+function formatarData(iso: string) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const hoje = new Date()
+  const mesmoDia = d.toDateString() === hoje.toDateString()
+  return mesmoDia
+    ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+}
 
 const suggestions = computed(() => auth.isCandidate
   ? ['Como melhorar meu currículo?', 'Como me preparar para entrevistas?', 'Quais habilidades estão em alta?']
@@ -81,8 +219,12 @@ async function sendMessage() {
 
   try {
     const res = await chatApi.send(text, sessionId.value)
+    const eraNova = !sessionId.value
     sessionId.value = res.data.sessionId
     messages.value.push({ role: 'assistant', content: res.data.response, time: new Date() })
+    // A lista precisa refletir a conversa nova, e o "há X min" das existentes.
+    carregarSessoes()
+    if (eraNova) historicoAberto.value = false
   } catch (e: any) {
     // O catch vazio anterior escondia a causa: qualquer falha virava a mesma
     // frase, e nem o console mostrava o motivo.
@@ -189,9 +331,12 @@ function formatTime(d: Date) {
 </script>
 
 <style scoped>
+/* Duas colunas: histórico à esquerda, conversa à direita. */
 .chat-page {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  /* Âncora para a gaveta do histórico e o botão de abrir no mobile. */
+  position: relative;
   /* Antes era height: calc(100vh - 80px), que assumia ser o unico elemento da
      area de conteudo. Com o rodape abaixo, a soma ultrapassava a viewport e o
      chat ficava cortado. flex:1 faz ele ocupar exatamente o espaco que sobra.
@@ -205,10 +350,86 @@ function formatTime(d: Date) {
   padding: 0;
 }
 
+/* ===== histórico ===== */
+.historico {
+  width: 260px; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+}
+.historico-topo { padding: 16px; border-bottom: 1px solid var(--border); }
+.btn-nova {
+  width: 100%; padding: 10px 14px; font-size: var(--text-sm);
+  background: var(--accent-dim); border: 1px solid var(--accent);
+  border-radius: var(--radius); color: var(--accent); cursor: pointer;
+  transition: background 0.15s var(--ease);
+}
+.btn-nova:hover { background: var(--accent); color: var(--on-accent); }
+
+.historico-lista { flex: 1; overflow-y: auto; padding: 8px; }
+.historico-vazio { font-size: var(--text-xs); color: var(--text-faint); padding: 16px 8px; line-height: 1.6; }
+
+.sessao {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-radius: var(--radius); cursor: pointer;
+  transition: background 0.15s var(--ease);
+}
+.sessao:hover { background: var(--bg-3); }
+.sessao.ativa { background: var(--accent-dim); }
+
+.sessao-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.sessao-titulo {
+  font-size: var(--text-sm); color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sessao-meta { font-size: 10px; color: var(--text-faint); }
+
+.sessao-apagar {
+  flex-shrink: 0; width: 26px; height: 26px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; border-radius: var(--radius);
+  color: var(--text-faint); cursor: pointer; opacity: 0;
+  transition: opacity 0.15s var(--ease), color 0.15s var(--ease);
+}
+.sessao:hover .sessao-apagar { opacity: 1; }
+.sessao-apagar:hover { color: var(--danger); background: var(--bg-2); }
+/* Sempre visível no toque, onde não existe hover. */
+@media (hover: none) { .sessao-apagar { opacity: 1; } }
+
+.btn-apagar-tudo {
+  margin: 8px; padding: 10px; font-size: var(--text-xs);
+  background: none; border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text-muted); cursor: pointer;
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.btn-apagar-tudo:hover { color: var(--danger); border-color: var(--danger); }
+
+.historico-toggle { display: none; }
+
+/* ===== confirmação ===== */
+.confirmacao-fundo {
+  position: fixed; inset: 0; z-index: 200;
+  background: var(--backdrop);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.confirmacao {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 28px; max-width: 400px; width: 100%;
+}
+.confirmacao h3 { font-size: var(--text-xl); margin-bottom: 10px; }
+.confirmacao p { font-size: var(--text-sm); color: var(--text-muted); line-height: 1.7; margin-bottom: 22px; }
+.confirmacao-acoes { display: flex; gap: 10px; justify-content: flex-end; }
+.btn-perigo {
+  background: var(--danger); border: 1px solid var(--danger); color: #fff;
+  padding: 10px 18px; border-radius: var(--radius); cursor: pointer; font-size: var(--text-sm);
+}
+.btn-perigo:hover { opacity: 0.9; }
+
 .chat-container {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   overflow: hidden;
   padding: 0;
   border-radius: 0;
@@ -313,6 +534,23 @@ function formatTime(d: Date) {
 @media (max-width: 900px) {
   /* Mesmo motivo da versao desktop: altura fixa somava com o rodape. */
   .chat-page { margin: 0; height: auto; }
+
+  /* O histórico vira gaveta sobreposta: em tela estreita a conversa é o que importa. */
+  .historico {
+    position: absolute; top: 0; bottom: 0; left: 0; z-index: 70;
+    width: 270px; transform: translateX(-100%);
+    transition: transform 0.25s var(--ease);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+  }
+  .historico.aberto { transform: translateX(0); }
+
+  .historico-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    position: absolute; top: 10px; left: 10px; z-index: 80;
+    width: 34px; height: 34px; font-size: 16px; line-height: 1;
+    background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text-muted); cursor: pointer;
+  }
   .messages { padding: 20px 16px; }
   .chat-input-area { padding: 12px 16px; }
   .msg-bubble { max-width: 85%; }
