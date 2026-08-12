@@ -246,20 +246,41 @@ public class ResumeService {
             throw new IllegalArgumentException("Tipo de arquivo não permitido. Use PDF, DOCX ou TXT.");
     }
 
+    /**
+     * Teto do texto enviado para analise.
+     *
+     * Um curriculo real tem entre 2.000 e 6.000 caracteres. Mas o upload aceita
+     * arquivos de ate 10MB, e um PDF denso pode render centenas de milhares de
+     * caracteres — que iriam inteiros para o prompt, estourando memoria do
+     * container e o tempo de resposta da Anthropic. 20.000 cobre com folga
+     * qualquer curriculo legitimo.
+     */
+    private static final int MAX_CHARS = 20_000;
+
     private String extractText(MultipartFile file) {
         try {
+            String texto;
             String type = file.getContentType();
             if ("application/pdf".equals(type)) {
                 try (PDDocument doc = Loader.loadPDF(file.getBytes())) {
-                    return new PDFTextStripper().getText(doc);
+                    texto = new PDFTextStripper().getText(doc);
                 }
             } else if ("application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(type)) {
                 try (XWPFDocument doc = new XWPFDocument(file.getInputStream())) {
-                    return new XWPFWordExtractor(doc).getText();
+                    texto = new XWPFWordExtractor(doc).getText();
                 }
             } else {
-                return new String(file.getBytes());
+                texto = new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
             }
+
+            if (texto == null) return "";
+
+            if (texto.length() > MAX_CHARS) {
+                log.warn("Texto extraido com {} caracteres; truncado em {}.", texto.length(), MAX_CHARS);
+                return texto.substring(0, MAX_CHARS);
+            }
+            return texto;
+
         } catch (IOException e) {
             throw new RuntimeException("Erro ao ler arquivo: " + e.getMessage());
         }

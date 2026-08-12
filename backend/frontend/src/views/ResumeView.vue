@@ -169,7 +169,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { resumeApi } from '@/services/api'
 import { jsPDF } from 'jspdf'
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx'
+import { Document, Packer, Paragraph, TextRun, BorderStyle } from 'docx'
 import { saveAs } from 'file-saver'
 
 const fileInput = ref<HTMLInputElement>()
@@ -379,80 +379,183 @@ function downloadPDF() {
 
   const linhas = improvedResume.value.split('\n')
 
-  // Um título de seção é uma linha curta toda em maiúsculas — é assim que o
-  // prompt pede a saída, e é o que permite hierarquia visual sem markdown.
-  const ehTitulo = (l: string) => {
-    const t = l.trim()
-    return t.length > 0 && t.length < 45 && t === t.toUpperCase() && /[A-ZÀ-Ú]/.test(t)
-  }
+  const blocos = montarBlocos(improvedResume.value)
 
   /** Simula o desenho e devolve a altura total que o conteúdo ocuparia. */
-  function medir(fonte: number, entrelinha: number, espacoSecao: number) {
+  function medir(f: number, el: number, esp: number) {
     let altura = 0
-    let primeira = true
-    for (const linha of linhas) {
-      if (linha.trim() === '') { altura += entrelinha * 0.45; continue }
-      const titulo = ehTitulo(linha)
-      if (titulo && !primeira) altura += espacoSecao
-      doc.setFontSize(titulo ? fonte + 0.5 : fonte)
-      altura += doc.splitTextToSize(linha, larguraUtil).length * entrelinha
-      primeira = false
-    }
+    blocos.forEach((b, i) => {
+      if (b.tipo === 'nome') { doc.setFontSize(f + 5); altura += el + 2.5 }
+      else if (b.tipo === 'contato') { doc.setFontSize(f - 1); altura += el - 0.6 }
+      else if (b.tipo === 'secao') { doc.setFontSize(f); altura += (i === 0 ? 0 : esp) + el + 1.6 }
+      else { doc.setFontSize(f) }
+      if (b.tipo !== 'nome' && b.tipo !== 'secao') {
+        const largura = b.tipo === 'item' ? larguraUtil - 4 : larguraUtil
+        altura += doc.splitTextToSize(b.texto, largura).length * el
+      }
+      if (b.tipo === 'item') altura += 0.6
+    })
     return altura
   }
 
-  // Busca a maior combinação que ainda caiba. 9pt é o piso: abaixo disso o
+  // Busca a maior combinação que ainda caiba. 8.5pt é o piso: abaixo disso o
   // currículo fica desconfortável de ler e o esforço passa a ser contraproducente.
   let fonte = 10.5
-  let entrelinha = 4.6
-  let espacoSecao = 3.2
-  while (medir(fonte, entrelinha, espacoSecao) > alturaUtil && fonte > 9) {
+  let entrelinha = 4.5
+  let espacoSecao = 4
+  while (medir(fonte, entrelinha, espacoSecao) > alturaUtil && fonte > 8.5) {
     fonte -= 0.25
-    entrelinha -= 0.12
-    espacoSecao -= 0.08
+    entrelinha -= 0.1
+    espacoSecao -= 0.15
   }
 
   let y = margem
-  let primeira = true
+  const fim = alturaPagina - margem
 
-  for (const linha of linhas) {
-    if (linha.trim() === '') { y += entrelinha * 0.45; continue }
+  blocos.forEach((b, i) => {
+    if (y > fim) return   // uma folha, sem exceção
 
-    const titulo = ehTitulo(linha)
-    if (titulo && !primeira) y += espacoSecao
+    if (b.tipo === 'nome') {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(fonte + 5)
+      doc.setTextColor(20)
+      doc.text(b.texto, margem, y)
+      y += entrelinha + 2.5
+      return
+    }
 
-    doc.setFont('helvetica', titulo ? 'bold' : 'normal')
-    doc.setFontSize(titulo ? fonte + 0.5 : fonte)
+    if (b.tipo === 'contato') {
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(fonte - 1)
+      doc.setTextColor(90)
+      doc.splitTextToSize(b.texto, larguraUtil).forEach((p: string) => {
+        doc.text(p, margem, y); y += entrelinha - 0.6
+      })
+      return
+    }
 
-    const partes = doc.splitTextToSize(linha, larguraUtil)
-    for (const parte of partes) {
-      if (y > alturaPagina - margem) break   // uma folha, sem exceção
-      doc.text(parte, margem, y)
+    if (b.tipo === 'secao') {
+      if (i !== 0) y += espacoSecao
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(fonte)
+      doc.setTextColor(20)
+      doc.text(b.texto.toUpperCase(), margem, y)
+      y += 1.6
+      doc.setDrawColor(170)
+      doc.setLineWidth(0.25)
+      doc.line(margem, y, larguraPagina - margem, y)
       y += entrelinha
+      return
     }
 
-    // Régua fina sob o título de seção: separa sem gastar altura.
-    if (titulo) {
-      doc.setDrawColor(180)
-      doc.setLineWidth(0.2)
-      doc.line(margem, y - entrelinha + 1.4, larguraPagina - margem, y - entrelinha + 1.4)
-      y += 1.2
-    }
+    // Item de lista: marcador e recuo pendente, para a segunda linha alinhar
+    // com a primeira em vez de voltar à margem.
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(fonte)
+    doc.setTextColor(40)
 
-    primeira = false
-  }
+    if (b.tipo === 'item') {
+      const partes = doc.splitTextToSize(b.texto, larguraUtil - 4)
+      partes.forEach((p: string, k: number) => {
+        if (y > fim) return
+        if (k === 0) doc.text('•', margem, y)
+        doc.text(p, margem + 4, y)
+        y += entrelinha
+      })
+      y += 0.6
+    } else {
+      doc.splitTextToSize(b.texto, larguraUtil).forEach((p: string) => {
+        if (y > fim) return
+        doc.text(p, margem, y); y += entrelinha
+      })
+    }
+  })
 
   doc.save(fileName)
 }
 
-async function downloadDOCX() {
-  const fileName = (title.value || 'curriculo') + '_melhorado.docx'
-  const text = improvedResume.value
-  const lines = text.split('\n')
+/** Nomes de seção conhecidos, para reconhecer o título mesmo sem maiúsculas. */
+const SECOES = [
+  'resumo profissional', 'resumo', 'perfil profissional', 'perfil', 'objetivo',
+  'experiencia profissional', 'experiencia', 'projetos', 'formacao academica',
+  'formacao', 'habilidades tecnicas', 'habilidades', 'competencias',
+  'idiomas', 'certificacoes', 'cursos', 'contato'
+]
 
-  const children = lines.map((line: string) => {
-    if (line.trim() === '') return new Paragraph({ text: '' })
-    return new Paragraph({ children: [new TextRun(line)] })
+function semAcento(s: string) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+}
+
+/*
+  Converte o texto corrido em blocos com papel definido. Antes o gerador só
+  distinguia "título" de "linha", e a detecção exigia MAIÚSCULAS — se o modelo
+  escrevesse "Resumo Profissional", nada ficava em negrito. Agora compara com uma
+  lista de seções conhecidas, sem acento e sem caixa, e o resto do currículo ganha
+  hierarquia: nome, contato, seções e itens de lista.
+*/
+function montarBlocos(texto: string) {
+  const linhas = texto.split('\n')
+  const blocos: { tipo: 'nome' | 'contato' | 'secao' | 'item' | 'texto'; texto: string }[] = []
+  let viuNome = false
+  let viuSecao = false
+
+  for (const bruta of linhas) {
+    const linha = bruta.trim()
+    if (!linha) continue
+
+    const chave = semAcento(linha).replace(/[:]+$/, '')
+    const ehSecao = SECOES.includes(chave) ||
+      (linha.length < 45 && linha === linha.toUpperCase() && /[A-ZÀ-Ú]{3}/.test(linha))
+
+    if (ehSecao) { blocos.push({ tipo: 'secao', texto: linha.replace(/[:]+$/, '') }); viuSecao = true; continue }
+    if (!viuNome) { blocos.push({ tipo: 'nome', texto: linha }); viuNome = true; continue }
+    if (!viuSecao) { blocos.push({ tipo: 'contato', texto: linha }); continue }
+
+    if (/^[-•*]\s+/.test(linha)) {
+      blocos.push({ tipo: 'item', texto: linha.replace(/^[-•*]\s+/, '') })
+    } else {
+      blocos.push({ tipo: 'texto', texto: linha })
+    }
+  }
+  return blocos
+}
+
+/** Mesma estrutura do PDF: nome, contato, seções em negrito e itens com marcador. */
+async function downloadDOCX() {
+  const fileName = (title.value || 'curriculo') + '.docx'
+  const blocos = montarBlocos(improvedResume.value)
+
+  const children = blocos.map(b => {
+    if (b.tipo === 'nome') {
+      return new Paragraph({
+        children: [new TextRun({ text: b.texto, bold: true, size: 30 })],
+        spacing: { after: 60 }
+      })
+    }
+    if (b.tipo === 'contato') {
+      return new Paragraph({
+        children: [new TextRun({ text: b.texto, size: 18, color: '555555' })],
+        spacing: { after: 20 }
+      })
+    }
+    if (b.tipo === 'secao') {
+      return new Paragraph({
+        children: [new TextRun({ text: b.texto.toUpperCase(), bold: true, size: 21 })],
+        spacing: { before: 220, after: 80 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: 'AAAAAA', space: 2 } }
+      })
+    }
+    if (b.tipo === 'item') {
+      return new Paragraph({
+        children: [new TextRun({ text: b.texto, size: 20 })],
+        bullet: { level: 0 },
+        spacing: { after: 40 }
+      })
+    }
+    return new Paragraph({
+      children: [new TextRun({ text: b.texto, size: 20 })],
+      spacing: { after: 60 }
+    })
   })
 
   const docFile = new Document({ sections: [{ properties: {}, children }] })
