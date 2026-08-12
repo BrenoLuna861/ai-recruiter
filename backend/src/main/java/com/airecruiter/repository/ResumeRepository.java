@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface ResumeRepository extends JpaRepository<Resume, Long> {
     List<Resume> findByUserIdAndActiveTrue(Long userId);
     Optional<Resume> findByIdAndUserId(Long id, Long userId);
+
+    void deleteByUserId(Long userId);
 }

@@ -10,4 +10,9 @@ import java.util.List;
 public interface JobRepository extends JpaRepository<Job, Long> {
     List<Job> findByActiveTrue();
     List<Job> findByRecruiterIdAndActiveTrue(Long recruiterId);
+
+    /** Inclui as inativas — na exclusao de conta nada pode ficar para tras. */
+    List<Job> findByRecruiterId(Long recruiterId);
+
+    void deleteByRecruiterId(Long recruiterId);
 }

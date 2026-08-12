@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface ResumeAnalysisRepository extends MongoRepository<ResumeAnalysis, String> {
     Optional<ResumeAnalysis> findByResumeId(Long resumeId);
+
+    void deleteByUserId(Long userId);
 }

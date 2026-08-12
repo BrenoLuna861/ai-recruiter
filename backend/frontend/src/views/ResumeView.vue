@@ -131,6 +131,11 @@
               <button class="btn-copy" @click="copy(improvedResume)">{{ copied ? 'Copiado' : 'Copiar' }}</button>
               <button class="btn-download" @click="downloadPDF">PDF</button>
               <button class="btn-download" @click="downloadDOCX">DOCX</button>
+              <!-- Salvar transforma a reescrita num currículo de verdade, que passa
+                   a aparecer no seletor de candidatura. Sem isso ela só existe nesta tela. -->
+              <button class="btn-salvar" @click="salvarMelhorado" :disabled="salvandoMelhorado">
+                {{ salvandoMelhorado ? 'Salvando...' : (salvouMelhorado ? 'Salvo' : 'Salvar como currículo') }}
+              </button>
             </div>
           </div>
           <div class="rewritten-text">{{ improvedResume }}</div>
@@ -179,6 +184,8 @@ const result = ref<any>(null)
 const resumes = ref<any[]>([])
 const improvedResume = ref('')
 const improveError = ref('')
+const salvandoMelhorado = ref(false)
+const salvouMelhorado = ref(false)
 const copied = ref(false)
 
 // Analise qualitativa: vem do MySQL (analysisJson), entao nao depende do MongoDB.
@@ -292,6 +299,31 @@ async function analyze() {
   Agora esses tres vem da analise (computed `analise`), e aqui sobrou apenas a
   reescrita — num endpoint proprio, que le o texto do banco pelo id.
 */
+/*
+  Salva a reescrita como um curriculo novo, reaproveitando o endpoint de analise:
+  o texto vira um arquivo .txt em memoria e segue o mesmo caminho de um upload.
+  Assim ele recebe notas proprias e passa a existir no seletor de candidatura,
+  sem precisar de um endpoint separado no backend.
+*/
+async function salvarMelhorado() {
+  if (!improvedResume.value) return
+  salvandoMelhorado.value = true
+  try {
+    const nomeBase = (result.value?.title || 'curriculo').replace(/\.[^.]+$/, '')
+    const nome = `${nomeBase}_melhorado`
+    const blob = new Blob([improvedResume.value], { type: 'text/plain' })
+    const arquivo = new File([blob], `${nome}.txt`, { type: 'text/plain' })
+
+    await resumeApi.analyze(arquivo, nome)
+    resumes.value = (await resumeApi.list()).data
+    salvouMelhorado.value = true
+  } catch (e: any) {
+    improveError.value = e.response?.data?.message || 'Não foi possível salvar. Tente novamente.'
+  } finally {
+    salvandoMelhorado.value = false
+  }
+}
+
 async function getSuggestions() {
   if (!result.value?.id) return
   loadingSuggestions.value = true
@@ -299,6 +331,7 @@ async function getSuggestions() {
   try {
     const res = await resumeApi.improve(result.value.id)
     improvedResume.value = res.data?.improvedResume || ''
+    salvouMelhorado.value = false
   } catch (e: any) {
     improveError.value = e.code === 'ECONNABORTED'
       ? 'A reescrita passou de 2 minutos e foi interrompida. Tente com um currículo menor.'
@@ -323,26 +356,91 @@ async function copy(text: string) {
   setTimeout(() => { copied.value = false }, 2000)
 }
 
+/*
+  PDF de UMA página, sempre.
+
+  A versão anterior chamava addPage() quando o texto passava do fim — o currículo
+  virava duas ou três folhas, que é justamente o que faz recrutador descartar.
+
+  Aqui o layout é medido antes de desenhar: se não couber, a fonte e o
+  espaçamento diminuem até caber, dentro de um piso legível. Só se nem no piso
+  couber é que a última linha é cortada — e aí o problema é excesso de conteúdo,
+  não de formatação.
+*/
 function downloadPDF() {
-  const doc = new jsPDF()
-  const fileName = (title.value || 'curriculo') + '_melhorado.pdf'
-  const margin = 20
-  const maxWidth = doc.internal.pageSize.getWidth() - margin * 2
-  let y = 20
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+  const fileName = (title.value || 'curriculo') + '.pdf'
 
-  const text = improvedResume.value
-  const lines = text.split('\n')
+  const larguraPagina = doc.internal.pageSize.getWidth()
+  const alturaPagina = doc.internal.pageSize.getHeight()
+  const margem = 16
+  const larguraUtil = larguraPagina - margem * 2
+  const alturaUtil = alturaPagina - margem * 2
 
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(11)
+  const linhas = improvedResume.value.split('\n')
 
-  lines.forEach((line: string) => {
-    if (y > 270) { doc.addPage(); y = 20 }
-    if (line.trim() === '') { y += 4; return }
-    const wrapped = doc.splitTextToSize(line, maxWidth)
-    doc.text(wrapped, margin, y)
-    y += wrapped.length * 6 + 2
-  })
+  // Um título de seção é uma linha curta toda em maiúsculas — é assim que o
+  // prompt pede a saída, e é o que permite hierarquia visual sem markdown.
+  const ehTitulo = (l: string) => {
+    const t = l.trim()
+    return t.length > 0 && t.length < 45 && t === t.toUpperCase() && /[A-ZÀ-Ú]/.test(t)
+  }
+
+  /** Simula o desenho e devolve a altura total que o conteúdo ocuparia. */
+  function medir(fonte: number, entrelinha: number, espacoSecao: number) {
+    let altura = 0
+    let primeira = true
+    for (const linha of linhas) {
+      if (linha.trim() === '') { altura += entrelinha * 0.45; continue }
+      const titulo = ehTitulo(linha)
+      if (titulo && !primeira) altura += espacoSecao
+      doc.setFontSize(titulo ? fonte + 0.5 : fonte)
+      altura += doc.splitTextToSize(linha, larguraUtil).length * entrelinha
+      primeira = false
+    }
+    return altura
+  }
+
+  // Busca a maior combinação que ainda caiba. 9pt é o piso: abaixo disso o
+  // currículo fica desconfortável de ler e o esforço passa a ser contraproducente.
+  let fonte = 10.5
+  let entrelinha = 4.6
+  let espacoSecao = 3.2
+  while (medir(fonte, entrelinha, espacoSecao) > alturaUtil && fonte > 9) {
+    fonte -= 0.25
+    entrelinha -= 0.12
+    espacoSecao -= 0.08
+  }
+
+  let y = margem
+  let primeira = true
+
+  for (const linha of linhas) {
+    if (linha.trim() === '') { y += entrelinha * 0.45; continue }
+
+    const titulo = ehTitulo(linha)
+    if (titulo && !primeira) y += espacoSecao
+
+    doc.setFont('helvetica', titulo ? 'bold' : 'normal')
+    doc.setFontSize(titulo ? fonte + 0.5 : fonte)
+
+    const partes = doc.splitTextToSize(linha, larguraUtil)
+    for (const parte of partes) {
+      if (y > alturaPagina - margem) break   // uma folha, sem exceção
+      doc.text(parte, margem, y)
+      y += entrelinha
+    }
+
+    // Régua fina sob o título de seção: separa sem gastar altura.
+    if (titulo) {
+      doc.setDrawColor(180)
+      doc.setLineWidth(0.2)
+      doc.line(margem, y - entrelinha + 1.4, larguraPagina - margem, y - entrelinha + 1.4)
+      y += 1.2
+    }
+
+    primeira = false
+  }
 
   doc.save(fileName)
 }
@@ -441,6 +539,9 @@ function formatText(t: string) { return t.replace(/\n/g, '<br>') }
 .rewritten-actions { display: flex; gap: 8px; }
 .rewritten-text { font-size: var(--text-sm); line-height: 1.8; color: var(--text); white-space: pre-wrap; }
 .btn-copy, .btn-download { font-size: 12px; padding: 4px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: transparent; color: var(--accent); cursor: pointer; transition: all 0.15s; }
+.btn-salvar { font-size: 12px; padding: 4px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent); color: var(--on-accent); cursor: pointer; transition: opacity 0.15s; }
+.btn-salvar:hover:not(:disabled) { opacity: 0.88; }
+.btn-salvar:disabled { opacity: 0.5; cursor: default; }
 .btn-copy:hover, .btn-download:hover { background: var(--accent-dim); }
 .analysis-box { margin-bottom: 24px; }
 .analysis-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }

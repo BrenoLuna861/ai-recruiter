@@ -54,6 +54,7 @@ public class SecurityConfig {
                     "/forgot-password",
                     "/reset-password",
                     "/confirmar-email",
+                    "/conta",
                     "/admin",
                     "/jobs",
                     "/dashboard",

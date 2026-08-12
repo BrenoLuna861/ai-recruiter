@@ -52,14 +52,14 @@
       <ThemeToggle variant="switch" />
     </div>
 
-    <!-- User -->
-    <div class="sidebar-user">
+    <!-- User: leva para a área da conta, que é onde ela é gerenciada -->
+    <RouterLink to="/conta" class="sidebar-user" active-class="ativa">
       <div class="user-avatar">{{ initials }}</div>
       <div class="user-info">
         <div class="user-name">{{ auth.user?.name }}</div>
         <div class="user-email">{{ auth.user?.email }}</div>
       </div>
-    </div>
+    </RouterLink>
 
     <button class="sidebar-logout" @click="handleLogout">
       <svg class="logout-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -198,7 +198,14 @@ function handleLogout() {
   border-top: 1px solid var(--border);
 }
 
-.sidebar-user { display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px; border-top: 1px solid var(--border); }
+.sidebar-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 16px 12px; border-top: 1px solid var(--border);
+  text-decoration: none; color: inherit;
+  transition: background 0.15s var(--ease);
+}
+.sidebar-user:hover { background: var(--bg-3); }
+.sidebar-user.ativa .user-name { color: var(--accent); }
 .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .user-info { flex: 1; min-width: 0; }
 .user-name { font-size: var(--text-sm); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

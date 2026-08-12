@@ -63,7 +63,10 @@ export const resumeApi = {
   list: () => api.get('/resumes'),
   get: (id: number) => api.get(`/resumes/${id}`),
   /** Reescrita do currículo. O texto sai do banco — só enviamos o id. */
-  improve: (id: number) => api.post(`/resumes/${id}/improve`, {}, { timeout: 120000 })
+  improve: (id: number) => api.post(`/resumes/${id}/improve`, {}, { timeout: 120000 }),
+  /** Aderência do currículo a uma vaga externa. A descrição vai no corpo. */
+  match: (id: number, jobTitle: string, jobDescription: string) =>
+    api.post(`/resumes/${id}/match`, { jobTitle, jobDescription }, { timeout: 90000 })
 }
 
 // Chat
@@ -76,6 +79,13 @@ export const chatApi = {
   sessions: () => api.get('/chat/sessions'),
   deleteSession: (sessionId: string) => api.delete(`/chat/sessions/${sessionId}`),
   deleteAllSessions: () => api.delete('/chat/sessions')
+}
+
+// Conta do próprio usuário
+export const accountApi = {
+  /** Exclusão definitiva. O servidor identifica a conta pelo token, não pelo corpo. */
+  excluirConta: (confirmacao: string) =>
+    api.delete('/account/me', { data: { confirmacao } })
 }
 
 // Admin

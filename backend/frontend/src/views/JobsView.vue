@@ -71,7 +71,14 @@
           <div v-if="auth.isCandidate" class="apply-section">
             <div v-if="applyError" class="error-box" style="margin-bottom:12px">{{ applyError }}</div>
             <div v-if="applySuccess" style="color:var(--accent);font-size:var(--text-sm);margin-bottom:12px">✓ Candidatura enviada!</div>
-            <div class="apply-row">
+            <!-- Sem currículo não há candidatura possível: em vez de um seletor
+                 vazio, o caminho para resolver. -->
+            <div v-if="!resumes.length" class="sem-curriculo">
+              Você ainda não tem currículo analisado.
+              <RouterLink to="/resume" class="link-curriculo">Enviar meu currículo</RouterLink>
+            </div>
+
+            <div v-else class="apply-row">
               <select v-model="selectedResume" class="input" style="flex:1">
                 <option value="">Selecione seu currículo</option>
                 <option v-for="r in resumes" :key="r.id" :value="r.id">{{ r.title }} ({{ r.overallScore ?? '?' }}/100)</option>
@@ -81,6 +88,12 @@
                 <span>{{ applying ? 'Enviando...' : 'Candidatar-se' }}</span>
               </button>
             </div>
+
+            <p v-if="resumes.length" class="apply-dica">
+              Quer usar a versão melhorada pela Aria?
+              <RouterLink to="/resume" class="link-curriculo">Gere e salve na tela de currículo</RouterLink>
+              — ela aparece aqui depois.
+            </p>
           </div>
         </div>
 
@@ -117,6 +130,49 @@
 
         <p v-if="vaga.description" class="externa-desc">{{ vaga.description }}</p>
 
+        <!-- Aderência: só faz sentido para candidato e com currículo analisado. -->
+        <div v-if="auth.isCandidate && resumes.length" class="aderencia" @click.prevent.stop>
+          <button
+            v-if="!aderencias[vaga.id]"
+            class="btn-aderencia"
+            :disabled="carregandoAderencia === vaga.id"
+            @click="verAderencia(vaga)"
+          >
+            <span v-if="carregandoAderencia === vaga.id" class="spinner" style="width:13px;height:13px;border-width:2px"></span>
+            <span>{{ carregandoAderencia === vaga.id ? 'Analisando...' : 'Ver minha aderência' }}</span>
+          </button>
+
+          <div v-else-if="aderencias[vaga.id].erro" class="aderencia-erro">
+            {{ aderencias[vaga.id].erro }}
+          </div>
+
+          <div v-else class="aderencia-resultado">
+            <div class="ad-topo">
+              <span class="ad-score" :class="scoreClass(aderencias[vaga.id].score)">
+                {{ aderencias[vaga.id].score }}% de aderência
+              </span>
+              <span class="ad-curriculo">com {{ curriculoUsado }}</span>
+            </div>
+
+            <p class="ad-verdict">{{ aderencias[vaga.id].verdict }}</p>
+
+            <div class="ad-colunas">
+              <div v-if="aderencias[vaga.id].matches?.length">
+                <span class="ad-label">O que você atende</span>
+                <ul><li v-for="(m, i) in aderencias[vaga.id].matches" :key="i">{{ m }}</li></ul>
+              </div>
+              <div v-if="aderencias[vaga.id].gaps?.length">
+                <span class="ad-label">O que falta</span>
+                <ul><li v-for="(g, i) in aderencias[vaga.id].gaps" :key="i">{{ g }}</li></ul>
+              </div>
+            </div>
+
+            <p v-if="aderencias[vaga.id].advice" class="ad-advice">
+              {{ aderencias[vaga.id].advice }}
+            </p>
+          </div>
+        </div>
+
         <div class="job-footer">
           <span class="job-date">{{ vaga.publishedAt ? formatDate(vaga.publishedAt) : '' }}</span>
           <span class="expand-hint">Ver no {{ vaga.source }} ↗</span>
@@ -150,6 +206,50 @@ const filtroLocal = ref('')
 const filtroRemotas = ref(false)
 
 const totalVisivel = computed(() => jobs.value.length + externas.value.length)
+
+// ----- aderência -----
+const aderencias = ref<Record<string, any>>({})
+const carregandoAderencia = ref<string | null>(null)
+
+/*
+  Usa o currículo de melhor nota. É o que a pessoa mostraria a um recrutador, e
+  escolher automaticamente evita um seletor a mais antes de ver o resultado —
+  quem tiver vários pode trocar depois, se fizer sentido.
+*/
+const melhorCurriculo = computed(() => {
+  if (!resumes.value.length) return null
+  return [...resumes.value].sort(
+    (a, b) => (b.overallScore || 0) - (a.overallScore || 0)
+  )[0]
+})
+
+const curriculoUsado = computed(() => melhorCurriculo.value?.title || 'seu currículo')
+
+async function verAderencia(vaga: any) {
+  const cv = melhorCurriculo.value
+  if (!cv) return
+
+  carregandoAderencia.value = vaga.id
+  try {
+    const res = await resumeApi.match(cv.id, vaga.title, vaga.description || '')
+    // O endpoint devolve o JSON do modelo como texto.
+    const dados = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+    aderencias.value = { ...aderencias.value, [vaga.id]: dados }
+  } catch (e: any) {
+    aderencias.value = {
+      ...aderencias.value,
+      [vaga.id]: { erro: e.response?.data?.message || 'Não foi possível analisar agora. Tente novamente.' }
+    }
+  } finally {
+    carregandoAderencia.value = null
+  }
+}
+
+function scoreClass(score: number) {
+  if (score >= 70) return 'alto'
+  if (score >= 45) return 'medio'
+  return 'baixo'
+}
 
 onMounted(async () => {
   try { jobs.value = (await jobApi.list()).data } catch {} finally { loading.value = false }
@@ -244,6 +344,60 @@ function formatDate(d: string) { return new Date(d).toLocaleDateString('pt-BR') 
 .job-card.externa { display: block; text-decoration: none; color: inherit; }
 .job-card.externa:hover { border-color: var(--accent); }
 .tag.fonte { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.sem-curriculo {
+  font-size: var(--text-sm); color: var(--text-muted); line-height: 1.7;
+  padding: 14px 16px; background: var(--bg-3);
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.link-curriculo { color: var(--accent); text-decoration: none; }
+.link-curriculo:hover { text-decoration: underline; }
+.apply-dica { font-size: var(--text-xs); color: var(--text-faint); line-height: 1.7; margin: 10px 0 0; }
+
+/* ----- aderência ----- */
+.aderencia { margin-top: 14px; }
+
+.btn-aderencia {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; font-size: var(--text-xs);
+  background: var(--accent-dim); border: 1px solid var(--accent);
+  border-radius: var(--radius); color: var(--accent); cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+.btn-aderencia:hover:not(:disabled) { background: var(--accent); color: var(--on-accent); }
+.btn-aderencia:disabled { opacity: 0.6; cursor: default; }
+
+.aderencia-erro { font-size: var(--text-xs); color: var(--danger); line-height: 1.6; }
+
+.aderencia-resultado {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; background: var(--bg-3);
+}
+.ad-topo { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.ad-score { font-size: var(--text-base); font-weight: 600; }
+.ad-score.alto { color: var(--accent); }
+.ad-score.medio { color: var(--warning); }
+.ad-score.baixo { color: var(--danger); }
+.ad-curriculo { font-size: 10px; color: var(--text-faint); }
+
+.ad-verdict { font-size: var(--text-sm); line-height: 1.7; color: var(--text); margin: 0 0 14px; }
+
+.ad-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.ad-label {
+  display: block; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-faint); margin-bottom: 6px;
+}
+.ad-colunas ul { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 5px; }
+.ad-colunas li { font-size: var(--text-xs); line-height: 1.6; color: var(--text-muted); }
+
+.ad-advice {
+  font-size: var(--text-xs); line-height: 1.7; color: var(--text-muted);
+  margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--border);
+}
+
+@media (max-width: 600px) {
+  .ad-colunas { grid-template-columns: 1fr; gap: 12px; }
+}
+
 .externa-desc {
   font-size: var(--text-sm); line-height: 1.65; color: var(--text-muted);
   margin: 10px 0 0; display: -webkit-box; -webkit-line-clamp: 2;

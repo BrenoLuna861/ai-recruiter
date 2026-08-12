@@ -187,7 +187,22 @@ public class AnthropicService {
      * passa facilmente dos 4.000 caracteres que o ChatMessageRequest permite,
      * e afrouxar aquele limite enfraqueceria a protecao do chat contra abuso.
      */
-    public String improveResume(String resumeContent) {
+    public String improveResume(String resumeContent, String pontosFracos, String sugestoes) {
+        String diagnostico = (pontosFracos.isBlank() && sugestoes.isBlank()) ? "" : """
+
+            DIAGNÓSTICO JÁ FEITO DESTE CURRÍCULO
+
+            Estes problemas foram identificados numa análise anterior. Corrija TODOS
+            eles na reescrita — não os ignore e não os deixe para depois. Se um deles
+            pedir para remover alguma informação, remova de fato.
+
+            Pontos fracos:
+            %s
+
+            Sugestões a aplicar:
+            %s
+            """.formatted(pontosFracos, sugestoes);
+
         String prompt = """
             Reescreva o currículo a seguir para caber em UMA PÁGINA.
 
@@ -222,12 +237,66 @@ public class AnthropicService {
 
             O resumo profissional tem no máximo três linhas.
 
+            O OBJETIVO
+
+            Este currículo precisa fazer um recrutador chamar a pessoa para
+            entrevista. Ele lê por poucos segundos e procura evidência de que a
+            pessoa resolve problemas, não uma lista de tecnologias.
+
+            Então, em cada item de experiência ou projeto: comece pelo que foi
+            feito, diga com qual tecnologia e termine no resultado. "Automatizou a
+            geração de relatórios em PDF a partir do banco, eliminando processo
+            manual recorrente" comunica; "Responsável por relatórios" não.
+
+            Se o original trouxer números, eles são o ativo mais valioso — mantenha
+            todos e destaque-os. Se não trouxer, descreva o efeito sem inventar
+            grandeza: "reduzindo retrabalho" é honesto, "reduzindo 40%% do
+            retrabalho" seria fraude se o número não existir.
+
             Responda apenas com o currículo. Sem comentários, sem explicação do que
-            você mudou, sem título de apresentação.
+            você mudou, sem título de apresentação.%s
 
             CURRÍCULO ORIGINAL:
             %s
-            """.formatted(resumeContent);
+            """.formatted(diagnostico, resumeContent);
+
+        return callClaude(prompt);
+    }
+
+    /**
+     * Compara um curriculo com a descricao de uma vaga.
+     *
+     * O prompt pede evidencia dos dois lados — o que casa e o que falta — porque
+     * uma nota sozinha nao ajuda ninguem a decidir se vale se candidatar.
+     */
+    public String matchResumeToJob(String resumeContent, String jobTitle, String jobDescription) {
+        String prompt = """
+            Avalie a aderência entre o currículo e a vaga abaixo.
+
+            Seja honesto e calibrado. Uma nota alta para um perfil que claramente
+            não atende faz a pessoa perder tempo numa candidatura sem chance; uma
+            nota baixa para quem atende a desencoraja de tentar. Considere o nível
+            da vaga: júnior não precisa ter tudo.
+
+            Responda APENAS com JSON, sem markdown:
+            {
+              "score": <0-100, aderência geral>,
+              "verdict": "<uma frase direta: vale se candidatar ou não, e por quê>",
+              "matches": ["<requisito da vaga que o currículo atende, citando a evidência>"],
+              "gaps": ["<requisito que falta ou está fraco, e o quanto isso pesa>"],
+              "advice": "<uma frase: o que destacar na candidatura, ou o que estudar>"
+            }
+
+            Máximo de 4 itens em matches e 3 em gaps.
+
+            VAGA: %s
+
+            DESCRIÇÃO DA VAGA:
+            %s
+
+            CURRÍCULO:
+            %s
+            """.formatted(jobTitle, jobDescription, resumeContent);
 
         return callClaude(prompt);
     }

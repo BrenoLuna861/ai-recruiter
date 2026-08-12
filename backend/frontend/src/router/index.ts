@@ -68,6 +68,11 @@ const router = createRouter({
       meta: { role: 'RECRUITER' }
     },
     {
+      path: '/conta',
+      name: 'Account',
+      component: () => import('@/views/AccountView.vue')
+    },
+    {
       path: '/admin',
       name: 'Admin',
       component: () => import('@/views/AdminView.vue'),

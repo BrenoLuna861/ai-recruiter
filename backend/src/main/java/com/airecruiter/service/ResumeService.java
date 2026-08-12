@@ -1,5 +1,6 @@
 package com.airecruiter.service;
 
+import com.airecruiter.config.SlidingWindowRateLimiter;
 import com.airecruiter.dto.response.ResumeResponse;
 import com.airecruiter.entity.Resume;
 import com.airecruiter.entity.ResumeAnalysis;
@@ -15,6 +16,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +45,12 @@ public class ResumeService {
     private final ResumeAnalysisRepository analysisRepository;
     private final UserRepository userRepository;
     private final AnthropicService anthropicService;
+    private final SlidingWindowRateLimiter rateLimiter;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /** Análises de aderência por usuário/hora. Cada uma custa crédito da Anthropic. */
+    @Value("${resumes.max-matches-por-hora:15}")
+    private int maxMatchesPorHora;
 
     @Transactional
     public ResumeResponse analyzeResume(MultipartFile file, String title, String email) {
@@ -144,7 +151,62 @@ public class ResumeService {
             throw new IllegalArgumentException("Este currículo não tem texto extraído para reescrever.");
         }
 
-        return anthropicService.improveResume(resume.getContent());
+        // A reescrita recebe o diagnostico da analise. Sem isso o modelo redescobre
+        // tudo do zero e perde achados especificos — por exemplo, a analise mandava
+        // remover um dado medico do cabecalho e a reescrita o mantinha.
+        String fracos = extrairLista(resume.getAnalysisJson(), "weaknesses");
+        String sugestoes = extrairLista(resume.getAnalysisJson(), "suggestions");
+
+        return anthropicService.improveResume(resume.getContent(), fracos, sugestoes);
+    }
+
+    /** Transforma um array do JSON da análise numa lista com hífens, para o prompt. */
+    private String extrairLista(String analysisJson, String campo) {
+        if (analysisJson == null || analysisJson.isBlank()) return "";
+        try {
+            Map<?, ?> dados = objectMapper.readValue(analysisJson, Map.class);
+            List<String> itens = toStringList(dados.get(campo));
+            if (itens == null || itens.isEmpty()) return "";
+            return itens.stream().map(i -> "- " + i).collect(Collectors.joining("\n"));
+        } catch (Exception e) {
+            log.warn("Nao foi possivel ler '{}' do analysisJson: {}", campo, e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * Aderência entre um currículo do usuário e uma vaga externa.
+     *
+     * Limitado por usuário: cada chamada consome crédito da Anthropic, e sem teto
+     * alguém abrindo a lista inteira de vagas geraria dezenas de análises.
+     */
+    public String matchToJob(Long resumeId, String jobTitle, String jobDescription, String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (!rateLimiter.tryAcquire("match:user:" + user.getId(), maxMatchesPorHora, 60)) {
+            throw new IllegalArgumentException(
+                "Você atingiu o limite de análises de aderência por hora. Tente novamente mais tarde.");
+        }
+
+        Resume resume = resumeRepository.findByIdAndUserId(resumeId, user.getId())
+            .orElseThrow(() -> new IllegalArgumentException("Currículo não encontrado"));
+
+        if (resume.getContent() == null || resume.getContent().isBlank()) {
+            throw new IllegalArgumentException("Este currículo não tem texto extraído.");
+        }
+        if (jobDescription == null || jobDescription.isBlank()) {
+            throw new IllegalArgumentException("A vaga não tem descrição suficiente para comparar.");
+        }
+
+        String json = anthropicService.matchResumeToJob(
+            resume.getContent(), jobTitle == null ? "" : jobTitle, jobDescription);
+
+        String limpo = json == null ? "" : json.strip();
+        if (limpo.startsWith("```")) {
+            limpo = limpo.replaceAll("^```[a-zA-Z]*\\n?", "").replaceAll("```$", "").strip();
+        }
+        return limpo;
     }
 
     public List<ResumeResponse> getUserResumes(String email) {

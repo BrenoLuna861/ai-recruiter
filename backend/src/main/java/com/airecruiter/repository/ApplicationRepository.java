@@ -11,4 +11,9 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findByJobIdOrderByMatchScoreDesc(Long jobId);
     List<Application> findByCandidateId(Long candidateId);
     boolean existsByJobIdAndCandidateId(Long jobId, Long candidateId);
+
+    void deleteByCandidateId(Long candidateId);
+
+    /** Candidaturas recebidas nas vagas de um recrutador. */
+    void deleteByJobIdIn(java.util.List<Long> jobIds);
 }
